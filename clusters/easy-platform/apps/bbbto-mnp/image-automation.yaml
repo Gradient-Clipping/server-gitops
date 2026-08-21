@@ -1,10 +1,10 @@
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
-  name: platform-smoke
+  name: bbbto-mnp
   namespace: flux-system
 spec:
-  image: ccr.ccs.tencentyun.com/lazycampus/platform-smoke
+  image: ccr.ccs.tencentyun.com/lazycampus/bbbto-mnp
   interval: 1m0s
   secretRef:
     name: tcr-auth
@@ -12,14 +12,14 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
 metadata:
-  name: platform-smoke
+  name: bbbto-mnp
   namespace: flux-system
 spec:
   filterTags:
     extract: $build
-    pattern: ^0\.1\.(?P<build>[0-9]+)$
+    pattern: ^1\.0\.(?P<build>[0-9]+)$
   imageRepositoryRef:
-    name: platform-smoke
+    name: bbbto-mnp
   policy:
     numerical:
       order: asc
@@ -27,7 +27,7 @@ spec:
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
 metadata:
-  name: platform-smoke
+  name: bbbto-mnp
   namespace: flux-system
 spec:
   git:
@@ -38,7 +38,7 @@ spec:
       author:
         email: flux@lazycampus.com
         name: Flux Image Automation
-      messageTemplate: "chore(images): update automated images"
+      messageTemplate: "chore(images): update bbbto-mnp"
     push:
       branch: main
   interval: 1m0s
@@ -46,5 +46,5 @@ spec:
     kind: GitRepository
     name: flux-system
   update:
-    path: ./clusters/easy-platform/apps/platform-smoke
+    path: ./clusters/easy-platform/apps/bbbto-mnp
     strategy: Setters

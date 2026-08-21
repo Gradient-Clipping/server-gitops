@@ -1,0 +1,70 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: platform-traefik
+  namespace: kube-system
+spec:
+  chart: https://%{KUBERNETES_API}%/static/charts/traefik-40.1.4+up40.1.0.tgz
+  createNamespace: true
+  targetNamespace: ingress-system
+  timeout: 5m
+  valuesContent: |-
+    global:
+      systemDefaultRegistry: ccr.ccs.tencentyun.com
+
+    image:
+      repository: lazycampus/traefik
+      tag: v3.7.1
+      pullPolicy: IfNotPresent
+
+    deployment:
+      replicas: 1
+      imagePullSecrets:
+        - name: tcr-auth
+
+    ingressClass:
+      enabled: true
+      isDefaultClass: true
+      name: traefik
+
+    providers:
+      kubernetesCRD:
+        enabled: false
+      kubernetesIngress:
+        enabled: true
+        publishedService:
+          enabled: false
+
+    service:
+      spec:
+        type: NodePort
+
+    ports:
+      web:
+        nodePort: 32080
+        forwardedHeaders:
+          trustedIPs:
+            - 127.0.0.1/32
+            - 10.6.0.3/32
+        transport:
+          respondingTimeouts:
+            readTimeout: 300s
+            writeTimeout: 300s
+            idleTimeout: 300s
+      websecure:
+        expose:
+          default: false
+
+    logs:
+      general:
+        level: INFO
+      access:
+        enabled: true
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
