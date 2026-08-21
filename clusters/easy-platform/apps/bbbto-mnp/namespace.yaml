@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bbbto-mnp
+  labels:
+    app.kubernetes.io/part-of: bbbto-mnp
+    pod-security.kubernetes.io/enforce: restricted

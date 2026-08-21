@@ -1,0 +1,30 @@
+name: Validate desired state
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out desired state
+        uses: actions/checkout@v5
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.36.3
+
+      - name: Render cluster manifests
+        run: kubectl kustomize clusters/easy-platform >/tmp/easy-platform.yaml
+
+      - name: Validate host scripts
+        run: bash -n scripts/*.sh

@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bbbto-mnp
+  namespace: bbbto-mnp
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: bbbto.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bbbto-mnp
+                port:
+                  name: http
+    - host: www.bbbto.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: bbbto-mnp
+                port:
+                  name: http

@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-shop-backend
+  namespace: smart-shop
+  labels:
+    app.kubernetes.io/name: smart-shop-backend
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: smart-shop-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: smart-shop-backend
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: ccr.ccs.tencentyun.com/lazycampus/smart-shop-backend:1.0.3 # {"$imagepolicy": "flux-system:smart-shop-backend"}
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: smart-shop-env
+          env:
+            - name: ENV
+              value: production
+            - name: BACKEND_HOST
+              value: 0.0.0.0
+            - name: BACKEND_PORT
+              value: "9099"
+            - name: DB_PATH
+              value: /app/backend/data/dorm_shop.db
+            - name: DB_RESET
+              value: "false"
+            - name: REDIS_URL
+              value: redis://smart-shop-redis:6379/0
+          ports:
+            - name: http
+              containerPort: 9099
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /app/backend/data
+              subPath: data
+            - name: data
+              mountPath: /app/backend/items
+              subPath: items
+            - name: data
+              mountPath: /app/public
+              subPath: public
+            - name: data
+              mountPath: /app/backend/logs
+              subPath: logs
+            - name: data
+              mountPath: /app/backend/exports
+              subPath: exports
+            - name: registration-validation
+              mountPath: /app/backend/app/services/registration_validation.py
+              subPath: registration_validation.py
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: smart-shop-data
+        - name: registration-validation
+          secret:
+            secretName: smart-shop-registration-validation
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smart-shop-backend
+  namespace: smart-shop
+spec:
+  selector:
+    app.kubernetes.io/name: smart-shop-backend
+  ports:
+    - name: http
+      port: 9099
+      targetPort: http
+      protocol: TCP

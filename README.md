@@ -10,7 +10,49 @@ This private repository is the desired state for the single-node `easy-platform-
 4. Flux image automation commits the tag change to this repository.
 5. Flux reconciliation applies the reviewed desired state to K3s.
 
-The current `platform-smoke` workload exists only to validate that path. It is a private `ClusterIP` service and does not occupy ports `80` or `443`.
+The original `platform-smoke` workload was removed after the first production
+workloads exercised the same image automation path.
+
+## Repository map
+
+- `infrastructure/ingress`: the bundled K3s Traefik chart, exposed only on the
+  loopback NodePort `32080` for the host Nginx TLS edge.
+- `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`.
+- `apps/bbbto-mnp`: `bbbto.com` and `www.bbbto.com`, including a retained
+  SQLite persistent volume.
+- `apps/smart-shop`: `shop.lazycampus.com` and
+  `shop-api.lazycampus.com`, including retained SQLite, uploads, public assets,
+  exports, logs, and Redis volumes.
+
+Domains are declared in each application's `ingress.yaml`. DNS and certificates
+remain at Tencent EdgeOne/Nginx; host Nginx forwards the original `Host` header
+to Traefik.
+
+Before installing Traefik, run `scripts/configure-k3s-nodeports.sh` once on the
+server. It restricts every Kubernetes NodePort to `127.0.0.0/8`, restarts K3s,
+and verifies that the node returns to `Ready`. This makes port `32080`
+unreachable from the public interface while allowing host Nginx to use it.
+
+After all application probes pass, `scripts/install-nginx-k3s-edge.sh` installs
+the versioned files in `host/nginx`, validates the complete Nginx configuration,
+and reloads it. A timestamped copy of all three previous site files is retained
+under `/var/backups`; validation failure restores the old files automatically.
+
+Application credentials and registry pull credentials are intentionally absent
+from Git. They are restored from root-only files on the server by
+`scripts/bootstrap-runtime-secrets.sh` before Flux applies workloads.
+
+## Persistent data
+
+Static persistent volumes use node affinity for `easy-platform-1`, a `Retain`
+reclaim policy, and the following host paths:
+
+- `/srv/k3s-data/bbbto-mnp`
+- `/srv/k3s-data/smart-shop`
+- `/srv/k3s-data/smart-shop-redis`
+
+Deleting a Deployment, namespace, PVC, or Flux object does not delete these
+directories. Back them up before schema-changing releases.
 
 ## Bootstrap-only secrets
 
@@ -18,7 +60,13 @@ The following Kubernetes secrets are intentionally created out of band and are n
 
 - `flux-system/flux-system`: a fine-grained GitHub token scoped to this repository for read/write GitOps reconciliation.
 - `flux-system/tcr-auth`: the Tencent TCR credential used by image reflection.
-- `platform-smoke/tcr-auth`: the Tencent TCR image pull credential.
+- `ingress-system/tcr-auth`, `lazycampus-site/tcr-auth`,
+  `bbbto-mnp/tcr-auth`, and `smart-shop/tcr-auth`: namespace-scoped TCR pull
+  credentials.
+- `bbbto-mnp/bbbto-runtime`: the existing book mapping and WeChat credentials.
+- `smart-shop/smart-shop-env`: the existing production environment.
+- `smart-shop/smart-shop-registration-validation`: the existing local student
+  number validation policy.
 
 K3s encrypts Kubernetes secrets at rest. Their recovery material is stored root-only on the server and must be included in server backups.
 

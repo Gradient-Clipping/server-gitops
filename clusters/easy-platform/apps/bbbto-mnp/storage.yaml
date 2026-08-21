@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: bbbto-mnp-data
+  labels:
+    app.kubernetes.io/name: bbbto-mnp
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: bbbto-mnp-hostpath
+  hostPath:
+    path: /srv/k3s-data/bbbto-mnp
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bbbto-mnp-data
+  namespace: bbbto-mnp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: bbbto-mnp-hostpath
+  volumeName: bbbto-mnp-data

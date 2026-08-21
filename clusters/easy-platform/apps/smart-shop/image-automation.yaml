@@ -1,0 +1,76 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: smart-shop-backend
+  namespace: flux-system
+spec:
+  image: ccr.ccs.tencentyun.com/lazycampus/smart-shop-backend
+  interval: 1m0s
+  secretRef:
+    name: tcr-auth
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: smart-shop-backend
+  namespace: flux-system
+spec:
+  filterTags:
+    extract: $build
+    pattern: ^1\.0\.(?P<build>[0-9]+)$
+  imageRepositoryRef:
+    name: smart-shop-backend
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: smart-shop-frontend
+  namespace: flux-system
+spec:
+  image: ccr.ccs.tencentyun.com/lazycampus/smart-shop-frontend
+  interval: 1m0s
+  secretRef:
+    name: tcr-auth
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: smart-shop-frontend
+  namespace: flux-system
+spec:
+  filterTags:
+    extract: $build
+    pattern: ^1\.0\.(?P<build>[0-9]+)$
+  imageRepositoryRef:
+    name: smart-shop-frontend
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: smart-shop
+  namespace: flux-system
+spec:
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: flux@lazycampus.com
+        name: Flux Image Automation
+      messageTemplate: "chore(images): update smart-shop"
+    push:
+      branch: main
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  update:
+    path: ./clusters/easy-platform/apps/smart-shop
+    strategy: Setters

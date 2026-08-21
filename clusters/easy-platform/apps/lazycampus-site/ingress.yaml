@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lazycampus-site
+  namespace: lazycampus-site
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: lazycampus.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lazycampus-site
+                port:
+                  name: http
+    - host: www.lazycampus.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lazycampus-site
+                port:
+                  name: http
