@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-smoke
+  namespace: platform-smoke
+  labels:
+    app.kubernetes.io/name: platform-smoke
+    app.kubernetes.io/part-of: platform-validation
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: platform-smoke
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: platform-smoke
+        app.kubernetes.io/part-of: platform-validation
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: platform-smoke
+          image: ccr.ccs.tencentyun.com/lazycampus/platform-smoke:0.1.0 # {"$imagepolicy": "flux-system:platform-smoke"}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 1
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 8Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+
