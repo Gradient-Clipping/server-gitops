@@ -16,11 +16,13 @@ The current `platform-smoke` workload exists only to validate that path. It is a
 
 The following Kubernetes secrets are intentionally created out of band and are never committed:
 
-- `flux-system/flux-system`: a fine-grained GitHub token scoped to this repository for read/write GitOps reconciliation through the private Xget endpoint.
+- `flux-system/flux-system`: a fine-grained GitHub token scoped to this repository for read/write GitOps reconciliation.
 - `flux-system/tcr-auth`: the Tencent TCR credential used by image reflection.
 - `platform-smoke/tcr-auth`: the Tencent TCR image pull credential.
 
 K3s encrypts Kubernetes secrets at rest. Their recovery material is stored root-only on the server and must be included in server backups.
+
+Flux uses GitHub directly because repeated checks from the server were consistently successful, while the EdgeOne-hosted Xget endpoint intermittently returned upstream `504` responses for this private repository. `xget.lazycampus.com` remains available as an IP-restricted fallback and Gitee is not part of the delivery path.
 
 ## Controller bootstrap
 
