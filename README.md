@@ -34,3 +34,5 @@ KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux install \
   --network-policy=true \
   --watch-all-namespaces=true
 ```
+
+After the initial installation has cached the pinned controller images, run `scripts/bootstrap-flux-controllers-tcr.sh` as root on the server. It mirrors only the node's `linux/amd64` images into TCR, switches all six deployments, and waits for every rollout. This server-side bootstrap avoids the unreliable cross-region upload path from GitHub-hosted runners to TCR.
