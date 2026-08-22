@@ -37,7 +37,10 @@ spec:
           command:
             - /bin/bash
             - -ec
-            - install -d -o 999 -g 999 -m 0750 /var/lib/mysql && chown -R 999:999 /var/lib/mysql
+            - |
+              install -d -o 999 -g 999 -m 0750 /var/lib/mysql /var/run/mysqld
+              chown -R 999:999 /var/lib/mysql /var/run/mysqld
+              chmod 0750 /var/lib/mysql /var/run/mysqld
           securityContext:
             runAsNonRoot: false
             runAsUser: 0
@@ -56,6 +59,8 @@ spec:
               mountPath: /var/lib/mysql
             - name: tmp
               mountPath: /tmp
+            - name: run
+              mountPath: /var/run/mysqld
       containers:
         - name: mysql
           image: ccr.ccs.tencentyun.com/lazycampus/mysql:8.4.11@sha256:d0ecae406d2e315d9e025055802b4570e471b5ca3f25bc90d696930755b11742

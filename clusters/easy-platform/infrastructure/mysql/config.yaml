@@ -10,6 +10,7 @@ data:
     collation-server=utf8mb4_0900_ai_ci
     default-time-zone=+00:00
     skip-name-resolve=ON
+    mysqlx=OFF
     max-connections=100
     innodb-buffer-pool-size=256M
     innodb-redo-log-capacity=256M
