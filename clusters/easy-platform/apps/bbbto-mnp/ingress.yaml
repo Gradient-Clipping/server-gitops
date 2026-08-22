@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   name: bbbto-mnp
   namespace: bbbto-mnp
+  annotations:
+    platform.lazycampus.com/domain-automation: enabled
+    platform.lazycampus.com/domain-adopt-existing: "true"
 spec:
   ingressClassName: traefik
   rules:

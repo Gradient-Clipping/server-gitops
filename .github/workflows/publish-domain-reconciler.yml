@@ -1,0 +1,62 @@
+name: Publish domain reconciler
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - controller/domain-reconciler/**
+      - .github/workflows/publish-domain-reconciler.yml
+  workflow_dispatch:
+
+concurrency:
+  group: publish-domain-reconciler-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ccr.ccs.tencentyun.com
+  IMAGE_NAME: lazycampus/domain-reconciler
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out desired state
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Run unit tests
+        env:
+          PYTHONPATH: controller/domain-reconciler/src
+        run: python -m unittest discover -s controller/domain-reconciler/tests -v
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Tencent Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.TCR_USERNAME }}
+          password: ${{ secrets.TCR_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: controller/domain-reconciler
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:1.0.${{ github.run_number }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+

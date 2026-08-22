@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   name: smart-shop-frontend
   namespace: smart-shop
+  annotations:
+    platform.lazycampus.com/domain-automation: enabled
+    platform.lazycampus.com/domain-adopt-existing: "true"
 spec:
   ingressClassName: traefik
   rules:
@@ -22,6 +25,9 @@ kind: Ingress
 metadata:
   name: smart-shop-backend
   namespace: smart-shop
+  annotations:
+    platform.lazycampus.com/domain-automation: enabled
+    platform.lazycampus.com/domain-adopt-existing: "true"
 spec:
   ingressClassName: traefik
   rules:
