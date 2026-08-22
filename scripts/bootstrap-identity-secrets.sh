@@ -171,7 +171,7 @@ headlamp_values = {
     "OIDC_CLIENT_SECRET": read("headlamp-oidc-client-secret"),
     "OIDC_ISSUER_URL": "https://auth.lazycampus.com/realms/lazycampus",
     "OIDC_CALLBACK_URL": "https://headlamp.lazycampus.com/oidc-callback",
-    "OIDC_SCOPES": "profile,email,groups",
+    "OIDC_SCOPES": "profile,email",
 }
 
 for path, values in (
