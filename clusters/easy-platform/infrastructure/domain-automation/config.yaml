@@ -17,6 +17,9 @@ data:
           "httpOriginPort": 80,
           "ipv6Status": "follow",
           "certificateMode": "eofreecert",
+          "hostHeaderOverrides": {
+            "lazycampus.com": "www.lazycampus.com"
+          },
           "ttl": 1
         },
         {

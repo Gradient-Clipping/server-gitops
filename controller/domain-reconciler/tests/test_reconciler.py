@@ -71,6 +71,9 @@ class ConfigurationTests(unittest.TestCase):
                                 "origin": "1.2.3.4",
                                 "cloudflareZoneId": "b" * 32,
                                 "edgeoneZoneId": "zone-test",
+                                "hostHeaderOverrides": {
+                                    "apps.example.com": "www.example.com"
+                                },
                             },
                         ]
                     }
@@ -83,6 +86,10 @@ class ConfigurationTests(unittest.TestCase):
             select_zone("api.apps.example.com", zones).domain, "apps.example.com"
         )
         self.assertEqual(select_zone("www.example.com", zones).domain, "example.com")
+        self.assertEqual(
+            select_zone("apps.example.com", zones).host_header_for("apps.example.com"),
+            "www.example.com",
+        )
 
     def test_hostname_and_record_name(self) -> None:
         self.assertEqual(normalize_hostname("WWW.Example.COM."), "www.example.com")
@@ -213,6 +220,44 @@ class EdgeOriginTests(unittest.TestCase):
             "IPv6Status": "follow",
         }
         self.assertEqual(DomainReconciler._edge_origin_drift(desired, existing), [])
+
+    def test_configured_host_header_override_is_preserved(self) -> None:
+        zone = ZoneConfig(
+            domain="example.com",
+            mode="edgeone",
+            origin="1.2.3.4",
+            cloudflare_zone_id="a" * 32,
+            edgeone_zone_id="zone-test",
+            host_header_overrides=(("example.com", "www.example.com"),),
+        )
+        desired = DesiredHost("example.com", zone, True, "default/web")
+        existing = {
+            "OriginDetail": {
+                "OriginType": "IP_DOMAIN",
+                "Origin": "1.2.3.4",
+                "HostHeader": "www.example.com",
+            },
+            "IPv6Status": "follow",
+        }
+        self.assertEqual(DomainReconciler._edge_origin_drift(desired, existing), [])
+
+    def test_new_domain_uses_configured_host_header_override(self) -> None:
+        zone = ZoneConfig(
+            domain="example.com",
+            mode="edgeone",
+            origin="1.2.3.4",
+            cloudflare_zone_id="a" * 32,
+            edgeone_zone_id="zone-test",
+            host_header_overrides=(("example.com", "www.example.com"),),
+        )
+        desired = DesiredHost("example.com", zone, True, "default/web")
+        tencent = FakeTencentClient()
+        DomainReconciler(tencent, FakeCloudflareClient())._reconcile_edgeone(
+            desired, {}
+        )
+        self.assertEqual(
+            tencent.calls[0][2]["OriginInfo"]["HostHeader"], "www.example.com"
+        )
 
 
 if __name__ == "__main__":
