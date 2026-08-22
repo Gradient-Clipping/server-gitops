@@ -259,6 +259,33 @@ class EdgeOriginTests(unittest.TestCase):
             tencent.calls[0][2]["OriginInfo"]["HostHeader"], "www.example.com"
         )
 
+    def test_processing_domain_does_not_switch_dns(self) -> None:
+        zone = ZoneConfig(
+            domain="example.com",
+            mode="edgeone",
+            origin="1.2.3.4",
+            cloudflare_zone_id="a" * 32,
+            edgeone_zone_id="zone-test",
+        )
+        desired = DesiredHost("www.example.com", zone, True, "default/web")
+        existing = {
+            "DomainStatus": "process",
+            "Cname": "www.example.com.eo.dnse.test",
+            "OriginDetail": {
+                "OriginType": "IP_DOMAIN",
+                "Origin": "1.2.3.4",
+                "HostHeader": "www.example.com",
+            },
+            "IPv6Status": "follow",
+        }
+        tencent = FakeTencentClient()
+        cloudflare = FakeCloudflareClient()
+        DomainReconciler(tencent, cloudflare)._reconcile_edgeone(
+            desired, {desired.hostname: existing}
+        )
+        self.assertEqual(tencent.calls, [])
+        self.assertEqual(cloudflare.calls, [])
+
 
 if __name__ == "__main__":
     unittest.main()
