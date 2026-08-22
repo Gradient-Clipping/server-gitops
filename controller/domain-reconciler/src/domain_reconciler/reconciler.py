@@ -559,24 +559,32 @@ class DomainReconciler:
             )
             return
 
+        status = str(existing.get("DomainStatus", "")).lower()
+        if status != "online":
+            log(
+                "info",
+                "edge_domain_waiting",
+                hostname=desired.hostname,
+                status=status or "unknown",
+            )
+            return
+
         cname = str(existing.get("Cname", "")).strip().rstrip(".")
         if not cname:
             log(
                 "info",
                 "edge_domain_waiting",
                 hostname=desired.hostname,
-                status=existing.get("DomainStatus", "unknown"),
+                status=status,
             )
             return
         dns_ready = self._ensure_dns(desired, "CNAME", cname)
-        status = str(existing.get("DomainStatus", "")).lower()
         certificate = existing.get("Certificate") or {}
         current_mode = str(certificate.get("Mode", "")).lower()
         if (
             zone.certificate_mode
             and current_mode not in {"eofreecert", "sslcert"}
             and dns_ready
-            and status == "online"
         ):
             self._mutate(
                 "teo",

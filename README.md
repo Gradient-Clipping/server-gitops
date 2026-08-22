@@ -33,6 +33,8 @@ Cloudflare DNS-only CNAME, and an EdgeOne free certificate. Hosts under
 `bbbto.com` receive a Cloudflare DNS-only A record pointing to the server. The
 controller updates an existing A/AAAA/CNAME only when
 `platform.lazycampus.com/domain-adopt-existing: "true"` is present. It
+waits for a newly created EdgeOne domain to report `online` before switching
+Cloudflare to its CNAME. It
 deliberately never deletes a cloud domain or DNS record when a host is removed
 from Git, so accidental manifest deletion cannot remove production DNS. Host
 Nginx continues to forward the original `Host` header to Traefik.
