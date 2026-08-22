@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: mysql-system
+data:
+  platform.cnf: |
+    [mysqld]
+    character-set-server=utf8mb4
+    collation-server=utf8mb4_0900_ai_ci
+    default-time-zone=+00:00
+    skip-name-resolve=ON
+    max-connections=100
+    innodb-buffer-pool-size=256M
+    innodb-redo-log-capacity=256M
+    slow-query-log=ON
+    long-query-time=2
+    log-output=FILE
+  10-create-backup-user.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mysql --protocol=socket --user=root <<SQL
+    CREATE USER IF NOT EXISTS 'platform_backup'@'%' IDENTIFIED BY '${MYSQL_BACKUP_PASSWORD}';
+    ALTER USER 'platform_backup'@'%' IDENTIFIED BY '${MYSQL_BACKUP_PASSWORD}';
+    GRANT SELECT, SHOW VIEW, SHOW_ROUTINE, TRIGGER, EVENT, LOCK TABLES ON *.* TO 'platform_backup'@'%';
+    FLUSH PRIVILEGES;
+    SQL
