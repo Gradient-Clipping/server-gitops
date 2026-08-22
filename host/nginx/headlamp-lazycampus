@@ -1,3 +1,13 @@
+map $http_cookie $headlamp_sso_suppressed {
+    default 0;
+    ~*(^|\;\s*)headlamp-sso-suppress=1(?:\;|$) 1;
+}
+
+map $headlamp_sso_suppressed $headlamp_sso_suppress_clear {
+    default "";
+    1 "headlamp-sso-suppress=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax";
+}
+
 server {
     listen 80;
     listen [::]:80;
@@ -9,6 +19,43 @@ server {
     large_client_header_buffers 4 64k;
 
     # Tencent EdgeOne terminates public HTTPS and reaches this origin over HTTP.
+    # Start OIDC before rendering Headlamp's local login screen. Headlamp clears
+    # its own token through this endpoint when the user explicitly logs out; the
+    # short-lived marker lets the next root view render once instead of
+    # immediately recreating the session.
+    location = /clusters/main/set-token {
+        proxy_pass http://127.0.0.1:32080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        add_header Set-Cookie "headlamp-sso-suppress=1; Path=/; Max-Age=120; Secure; HttpOnly; SameSite=Lax" always;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
+    location = / {
+        add_header Set-Cookie $headlamp_sso_suppress_clear always;
+
+        if ($headlamp_sso_suppressed = 0) {
+            return 302 https://headlamp.lazycampus.com/oidc?cluster=main;
+        }
+
+        proxy_pass http://127.0.0.1:32080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:32080;
         proxy_http_version 1.1;
