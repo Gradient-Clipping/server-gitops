@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backend
-          image: ccr.ccs.tencentyun.com/lazycampus/smart-shop-backend:1.0.25 # {"$imagepolicy": "flux-system:smart-shop-backend"}
+          image: ccr.ccs.tencentyun.com/lazycampus/smart-shop-backend:1.0.26 # {"$imagepolicy": "flux-system:smart-shop-backend"}
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
