@@ -56,6 +56,18 @@ server {
         proxy_send_timeout 300s;
     }
 
+    # Headlamp normally completes OIDC inside a popup. The platform also starts
+    # OIDC as a top-level navigation, so complete both modes explicitly: notify
+    # and close a popup, or continue a top-level window to the main cluster.
+    location = /auth {
+        default_type text/html;
+        add_header Cache-Control "no-store" always;
+        add_header Content-Security-Policy "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        return 200 '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>正在完成登录</title><style>body{font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;color:#334155;background:#f8fafc}</style></head><body><p>正在进入控制台…</p><script>(function(){if(window.opener&&!window.opener.closed){localStorage.setItem("auth_status","success");window.close();return;}window.location.replace("/c/main/");})();</script></body></html>';
+    }
+
     location / {
         proxy_pass http://127.0.0.1:32080;
         proxy_http_version 1.1;

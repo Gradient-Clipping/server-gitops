@@ -75,6 +75,8 @@ spec:
                   key: OIDC_SCOPES
             - name: HEADLAMP_STATIC_PLUGINS_DIR
               value: ""
+            - name: HOME
+              value: /tmp/headlamp
           ports:
             - name: http
               containerPort: 4466
