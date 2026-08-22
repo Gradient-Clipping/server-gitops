@@ -73,6 +73,11 @@ spec:
         level: INFO
       access:
         enabled: true
+        fields:
+          general:
+            defaultmode: keep
+            names:
+              RequestPath: drop
 
     resources:
       requests:

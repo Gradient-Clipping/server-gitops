@@ -2,6 +2,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name auth.lazycampus.com;
+    access_log off;
 
     # Tencent EdgeOne terminates public HTTPS and reaches this origin over HTTP.
     location / {
