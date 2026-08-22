@@ -48,6 +48,8 @@ spec:
               value: "false"
             - name: REDIS_URL
               value: redis://smart-shop-redis:6379/0
+            - name: OIDC_IDP_HINT
+              value: campus
           ports:
             - name: http
               containerPort: 9099

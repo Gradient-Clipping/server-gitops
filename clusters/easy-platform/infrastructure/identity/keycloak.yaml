@@ -194,6 +194,15 @@ spec:
                   /opt/keycloak/bin/kcadm.sh update realms/lazycampus/users/profile \
                     --config /tmp/kcadm.config \
                     --file /config/user-profile.json
+                  /opt/keycloak/bin/kcadm.sh update realms/lazycampus \
+                    --config /tmp/kcadm.config \
+                    --set 'rememberMe=true' \
+                    --set 'ssoSessionIdleTimeout=2592000' \
+                    --set 'ssoSessionMaxLifespan=7776000' \
+                    --set 'ssoSessionIdleTimeoutRememberMe=2592000' \
+                    --set 'ssoSessionMaxLifespanRememberMe=7776000' \
+                    --set 'clientSessionIdleTimeout=0' \
+                    --set 'clientSessionMaxLifespan=0'
                   client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
@@ -210,7 +219,8 @@ spec:
                   /opt/keycloak/bin/kcadm.sh update identity-provider/instances/campus \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
-                    --set 'config.logoutUrl=https://auth.lazycampus.com/campus/session/end'
+                    --set 'config.logoutUrl=https://auth.lazycampus.com/campus/session/end' \
+                    --set 'config.passLoginHint=true'
               envFrom:
                 - secretRef:
                     name: keycloak-runtime
