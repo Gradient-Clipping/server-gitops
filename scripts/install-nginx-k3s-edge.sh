@@ -4,7 +4,7 @@ set -euo pipefail
 source_dir="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../host/nginx" && pwd)}"
 target_dir="/etc/nginx/sites-available"
 backup_dir="/var/backups/nginx-k3s-cutover-$(date +%Y%m%dT%H%M%S%z)"
-configs=(lazycampus bbbto.com shop-lazycampus auth-lazycampus)
+configs=(lazycampus bbbto.com shop-lazycampus auth-lazycampus headlamp-lazycampus)
 new_configs=()
 
 for name in "${configs[@]}"; do

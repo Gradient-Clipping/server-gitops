@@ -216,6 +216,127 @@ spec:
                     --target-realm lazycampus \
                     --file /config/smart-shop-client.json \
                     --merge
+
+                  headlamp_client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --query clientId=headlamp \
+                    --fields id \
+                    --format csv \
+                    --noquotes | tail -n 1)"
+                  if [[ -z "${headlamp_client_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create clients \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/headlamp-client.json >/dev/null
+                    headlamp_client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --query clientId=headlamp \
+                      --fields id \
+                      --format csv \
+                      --noquotes | tail -n 1)"
+                  else
+                    /opt/keycloak/bin/kcadm.sh update "clients/${headlamp_client_id}" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/headlamp-client.json \
+                      --merge
+                  fi
+                  test -n "${headlamp_client_id}"
+                  /opt/keycloak/bin/kcadm.sh update "clients/${headlamp_client_id}" \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --set "secret=${HEADLAMP_OIDC_CLIENT_SECRET}"
+
+                  groups_mapper_id="$(/opt/keycloak/bin/kcadm.sh get \
+                    "clients/${headlamp_client_id}/protocol-mappers/models" \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --fields id,name \
+                    --format csv \
+                    --noquotes | sed -n 's/^\([^,]*\),groups$/\1/p' | sed -n '1p')"
+                  if [[ -z "${groups_mapper_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create \
+                      "clients/${headlamp_client_id}/protocol-mappers/models" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/headlamp-groups-mapper.json >/dev/null
+                  else
+                    /opt/keycloak/bin/kcadm.sh update \
+                      "clients/${headlamp_client_id}/protocol-mappers/models/${groups_mapper_id}" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/headlamp-groups-mapper.json
+                  fi
+
+                  viewer_group_id="$(/opt/keycloak/bin/kcadm.sh get groups \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --query search=headlamp-viewers \
+                    --query exact=true \
+                    --fields id,name \
+                    --format csv \
+                    --noquotes | sed -n 's/^\([^,]*\),headlamp-viewers$/\1/p' | sed -n '1p')"
+                  if [[ -z "${viewer_group_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create groups \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --set name=headlamp-viewers >/dev/null
+                    viewer_group_id="$(/opt/keycloak/bin/kcadm.sh get groups \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --query search=headlamp-viewers \
+                      --query exact=true \
+                      --fields id,name \
+                      --format csv \
+                      --noquotes | sed -n 's/^\([^,]*\),headlamp-viewers$/\1/p' | sed -n '1p')"
+                  fi
+                  test -n "${viewer_group_id}"
+                  /opt/keycloak/bin/kcadm.sh update \
+                    "realms/lazycampus/default-groups/${viewer_group_id}" \
+                    --config /tmp/kcadm.config \
+                    --no-merge >/dev/null
+
+                  headlamp_admin_id="$(/opt/keycloak/bin/kcadm.sh get users \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --query username=ystemsrx \
+                    --query exact=true \
+                    --fields id \
+                    --format csv \
+                    --noquotes | tail -n 1)"
+                  if [[ -z "${headlamp_admin_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create users \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --set username=ystemsrx \
+                      --set enabled=true \
+                      --set emailVerified=true \
+                      --set firstName=Platform \
+                      --set lastName=Administrator >/dev/null
+                  fi
+                  /opt/keycloak/bin/kcadm.sh set-password \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --username ystemsrx \
+                    --new-password "${HEADLAMP_ADMIN_PASSWORD}"
+
+                  /opt/keycloak/bin/kcadm.sh get users \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --fields id,username \
+                    --format csv \
+                    --noquotes | while IFS=, read -r user_id username; do
+                    [[ "${user_id}" == "id" || -z "${user_id}" ]] && continue
+                    [[ "${username}" == service-account-* ]] && continue
+                    /opt/keycloak/bin/kcadm.sh update \
+                      "users/${user_id}/groups/${viewer_group_id}" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --no-merge >/dev/null
+                  done
+
                   /opt/keycloak/bin/kcadm.sh update identity-provider/instances/campus \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
@@ -252,6 +373,10 @@ spec:
                     path: user-profile.json
                   - key: smart-shop-client.json
                     path: smart-shop-client.json
+                  - key: headlamp-client.json
+                    path: headlamp-client.json
+                  - key: headlamp-groups-mapper.json
+                    path: headlamp-groups-mapper.json
             - name: tmp
               emptyDir:
                 sizeLimit: 32Mi
