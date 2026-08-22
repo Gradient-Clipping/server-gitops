@@ -89,7 +89,7 @@ spec:
               command:
                 - /bin/bash
                 - -ec
-                - mysqladmin ping --host=127.0.0.1 --silent
+                - MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mysqladmin ping --protocol=socket --user=root --silent
             periodSeconds: 5
             failureThreshold: 60
           readinessProbe:
@@ -97,7 +97,7 @@ spec:
               command:
                 - /bin/bash
                 - -ec
-                - mysqladmin ping --host=127.0.0.1 --silent
+                - MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mysqladmin ping --protocol=socket --user=root --silent
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
@@ -106,7 +106,7 @@ spec:
               command:
                 - /bin/bash
                 - -ec
-                - mysqladmin ping --host=127.0.0.1 --silent
+                - MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mysqladmin ping --protocol=socket --user=root --silent
             initialDelaySeconds: 30
             periodSeconds: 15
             timeoutSeconds: 5
