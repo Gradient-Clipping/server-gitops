@@ -38,7 +38,7 @@ spec:
             - name: HTTP_TIMEOUT_SECONDS
               value: "15"
             - name: DRY_RUN
-              value: "true"
+              value: "false"
             - name: TENCENTCLOUD_SECRET_ID
               valueFrom:
                 secretKeyRef:
