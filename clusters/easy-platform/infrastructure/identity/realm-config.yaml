@@ -335,3 +335,11 @@ data:
         }
       ]
     }
+  smart-shop-client.json: |
+    {
+      "name": "Smart Shop",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://shop.lazycampus.com/login"
+      }
+    }

@@ -194,6 +194,19 @@ spec:
                   /opt/keycloak/bin/kcadm.sh update realms/lazycampus/users/profile \
                     --config /tmp/kcadm.config \
                     --file /config/user-profile.json
+                  client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --query clientId=smart-shop \
+                    --fields id \
+                    --format csv \
+                    --noquotes | tail -n 1)"
+                  test -n "${client_id}"
+                  /opt/keycloak/bin/kcadm.sh update "clients/${client_id}" \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --file /config/smart-shop-client.json \
+                    --merge
               envFrom:
                 - secretRef:
                     name: keycloak-runtime
@@ -223,6 +236,8 @@ spec:
                 items:
                   - key: user-profile.json
                     path: user-profile.json
+                  - key: smart-shop-client.json
+                    path: smart-shop-client.json
             - name: tmp
               emptyDir:
                 sizeLimit: 32Mi
