@@ -179,7 +179,7 @@ data:
             "useJwksUrl": "true",
             "validateSignature": "true",
             "disableUserInfo": "false",
-            "passLoginHint": "true",
+            "loginHint": "true",
             "syncMode": "FORCE",
             "caseSensitiveOriginalUsername": "false"
           }
