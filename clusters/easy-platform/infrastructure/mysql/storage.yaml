@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: platform-mysql-data
+  labels:
+    app.kubernetes.io/name: platform-mysql
+spec:
+  capacity:
+    storage: 40Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: platform-mysql-hostpath
+  hostPath:
+    path: /srv/k3s-data/mysql
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+  namespace: mysql-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 40Gi
+  storageClassName: platform-mysql-hostpath
+  volumeName: platform-mysql-data
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: platform-mysql-backups
+  labels:
+    app.kubernetes.io/name: platform-mysql-backups
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: platform-mysql-backups-hostpath
+  hostPath:
+    path: /srv/k3s-backups/mysql
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-backups
+  namespace: mysql-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: platform-mysql-backups-hostpath
+  volumeName: platform-mysql-backups

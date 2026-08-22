@@ -17,6 +17,8 @@ workloads exercised the same image automation path.
 
 - `infrastructure/ingress`: the bundled K3s Traefik chart, exposed only on the
   loopback NodePort `32080` for the host Nginx TLS edge.
+- `infrastructure/mysql`: the cluster-wide MySQL 8.4 LTS service, retained data
+  and backup volumes, and a daily logical backup job.
 - `infrastructure/domain-automation`: an opt-in controller that reconciles
   Ingress hosts into Tencent EdgeOne and Cloudflare DNS.
 - `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`.
@@ -61,9 +63,41 @@ reclaim policy, and the following host paths:
 - `/srv/k3s-data/bbbto-mnp`
 - `/srv/k3s-data/smart-shop`
 - `/srv/k3s-data/smart-shop-redis`
+- `/srv/k3s-data/mysql`
+- `/srv/k3s-backups/mysql`
 
 Deleting a Deployment, namespace, PVC, or Flux object does not delete these
 directories. Back them up before schema-changing releases.
+
+## Shared MySQL
+
+Applications must use the single cluster service
+`mysql.mysql-system.svc.cluster.local:3306` instead of deploying their own
+MySQL server. The service is ClusterIP-only and is not exposed by an Ingress or
+NodePort. MySQL is pinned to an explicit 8.4 LTS image and upgrades are
+deliberate Git changes rather than automatic database rollouts.
+
+Each application receives a separate database and least-privilege user. On the
+server, after the application's namespace exists, run:
+
+```sh
+/usr/local/sbin/provision-mysql-database \
+  <database> <application-namespace> [secret-name] [username]
+```
+
+The idempotent script creates the database, limits the user to that database,
+and writes `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`, `MYSQL_USER`,
+`MYSQL_PASSWORD`, and `DATABASE_URL` into the application namespace Secret.
+Passwords are generated once and retained under
+`/etc/platform-secrets/mysql-apps`; no credential is committed or printed.
+Database schema migrations remain owned by each application release.
+The installed helper is versioned as `scripts/provision-mysql-database.sh` in
+this repository.
+
+A logical backup of all databases runs daily at 03:17 Asia/Shanghai and keeps
+14 days under `/srv/k3s-backups/mysql`. These local backups protect against
+application-level mistakes but do not replace an off-server backup of the
+host paths and `/etc/platform-secrets`.
 
 ## Bootstrap-only secrets
 
@@ -83,8 +117,16 @@ The following Kubernetes secrets are intentionally created out of band and are n
 - `domain-system/cloudflare-credentials`: an API token with DNS Write access
   limited to the `lazycampus.com` and `bbbto.com` zones.
 - `domain-system/tcr-auth`: the registry pull credential for the controller.
+- `mysql-system/tcr-auth`: the registry pull credential for MySQL.
+- `mysql-system/mysql-credentials`: fixed root and backup-user passwords used
+  by MySQL initialization and daily backups.
 
 K3s encrypts Kubernetes secrets at rest. Their recovery material is stored root-only on the server and must be included in server backups.
+
+Create root-only `mysql-root-password` and `mysql-backup-password` files in
+`/etc/platform-secrets`, then run `scripts/bootstrap-mysql-secrets.sh` before
+the first MySQL reconciliation. Changing those files later does not rotate the
+passwords already stored inside MySQL.
 
 Create the three root-only files `tencentcloud-secret-id`,
 `tencentcloud-secret-key`, and `cloudflare-api-token` in
