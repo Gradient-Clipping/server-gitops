@@ -220,7 +220,7 @@ spec:
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
                     --set 'config.logoutUrl=https://auth.lazycampus.com/campus/session/end' \
-                    --set 'config.passLoginHint=true'
+                    --set 'config.loginHint=true'
               envFrom:
                 - secretRef:
                     name: keycloak-runtime
