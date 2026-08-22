@@ -354,10 +354,10 @@ spec:
                   mountPath: /tmp
               resources:
                 requests:
-                  cpu: 25m
+                  cpu: 100m
                   memory: 128Mi
                 limits:
-                  cpu: 250m
+                  cpu: "1"
                   memory: 384Mi
               securityContext:
                 allowPrivilegeEscalation: false
