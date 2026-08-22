@@ -207,6 +207,10 @@ spec:
                     --target-realm lazycampus \
                     --file /config/smart-shop-client.json \
                     --merge
+                  /opt/keycloak/bin/kcadm.sh update identity-provider/instances/campus \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --set 'config.logoutUrl=https://auth.lazycampus.com/campus/session/end'
               envFrom:
                 - secretRef:
                     name: keycloak-runtime
