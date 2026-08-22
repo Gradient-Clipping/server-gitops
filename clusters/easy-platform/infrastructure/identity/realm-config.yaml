@@ -165,7 +165,7 @@ data:
             "issuer": "https://auth.lazycampus.com/campus",
             "authorizationUrl": "https://auth.lazycampus.com/campus/auth",
             "tokenUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/token",
-            "logoutUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/session/end",
+            "logoutUrl": "https://auth.lazycampus.com/campus/session/end",
             "userInfoUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/me",
             "jwksUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/jwks",
             "clientId": "keycloak-campus-bridge",
