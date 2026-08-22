@@ -249,6 +249,30 @@ spec:
                     --target-realm lazycampus \
                     --set "secret=${HEADLAMP_OIDC_CLIENT_SECRET}"
 
+                  headlamp_admin_id="$(/opt/keycloak/bin/kcadm.sh get users \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --query username=ystemsrx \
+                    --query exact=true \
+                    --fields id \
+                    --format csv \
+                    --noquotes | tail -n 1)"
+                  if [[ -z "${headlamp_admin_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create users \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --set username=ystemsrx \
+                      --set enabled=true \
+                      --set emailVerified=true \
+                      --set firstName=Platform \
+                      --set lastName=Administrator >/dev/null
+                  fi
+                  /opt/keycloak/bin/kcadm.sh set-password \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --username ystemsrx \
+                    --new-password "${HEADLAMP_ADMIN_PASSWORD}"
+
                   groups_mapper_id="$(/opt/keycloak/bin/kcadm.sh get \
                     "clients/${headlamp_client_id}/protocol-mappers/models" \
                     --config /tmp/kcadm.config \
@@ -267,7 +291,8 @@ spec:
                       "clients/${headlamp_client_id}/protocol-mappers/models/${groups_mapper_id}" \
                       --config /tmp/kcadm.config \
                       --target-realm lazycampus \
-                      --file /config/headlamp-groups-mapper.json
+                      --file /config/headlamp-groups-mapper.json \
+                      --set "id=${groups_mapper_id}"
                   fi
 
                   viewer_group_id="$(/opt/keycloak/bin/kcadm.sh get groups \
@@ -306,36 +331,12 @@ spec:
                     --fields id \
                     --format csv \
                     --noquotes | tail -n 1)"
-                  if [[ -z "${headlamp_admin_id}" ]]; then
-                    /opt/keycloak/bin/kcadm.sh create users \
-                      --config /tmp/kcadm.config \
-                      --target-realm lazycampus \
-                      --set username=ystemsrx \
-                      --set enabled=true \
-                      --set emailVerified=true \
-                      --set firstName=Platform \
-                      --set lastName=Administrator >/dev/null
-                  fi
-                  /opt/keycloak/bin/kcadm.sh set-password \
+                  test -n "${headlamp_admin_id}"
+                  /opt/keycloak/bin/kcadm.sh update \
+                    "users/${headlamp_admin_id}/groups/${viewer_group_id}" \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
-                    --username ystemsrx \
-                    --new-password "${HEADLAMP_ADMIN_PASSWORD}"
-
-                  /opt/keycloak/bin/kcadm.sh get users \
-                    --config /tmp/kcadm.config \
-                    --target-realm lazycampus \
-                    --fields id,username \
-                    --format csv \
-                    --noquotes | while IFS=, read -r user_id username; do
-                    [[ "${user_id}" == "id" || -z "${user_id}" ]] && continue
-                    [[ "${username}" == service-account-* ]] && continue
-                    /opt/keycloak/bin/kcadm.sh update \
-                      "users/${user_id}/groups/${viewer_group_id}" \
-                      --config /tmp/kcadm.config \
-                      --target-realm lazycampus \
-                      --no-merge >/dev/null
-                  done
+                    --no-merge >/dev/null
 
                   /opt/keycloak/bin/kcadm.sh update identity-provider/instances/campus \
                     --config /tmp/kcadm.config \
