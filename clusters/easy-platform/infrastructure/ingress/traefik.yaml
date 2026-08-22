@@ -58,6 +58,7 @@ spec:
           trustedIPs:
             - 127.0.0.1/32
             - 10.6.0.3/32
+            - 10.42.0.1/32
         transport:
           respondingTimeouts:
             readTimeout: 300s
