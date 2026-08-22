@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: identity-system
+  labels:
+    app.kubernetes.io/name: keycloak
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: keycloak
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: keycloak
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: keycloak
+          image: ccr.ccs.tencentyun.com/lazycampus/keycloak:26.7.1@sha256:14a382edabb24f92e437911239f8bb344bd7b7612a03949b5b4a45278008a408
+          imagePullPolicy: IfNotPresent
+          args:
+            - start
+            - --import-realm
+            - --http-port=8080
+          env:
+            - name: KC_DB
+              value: mysql
+            - name: KC_DB_URL_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-keycloak
+                  key: MYSQL_HOST
+            - name: KC_DB_URL_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-keycloak
+                  key: MYSQL_PORT
+            - name: KC_DB_URL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-keycloak
+                  key: MYSQL_DATABASE
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-keycloak
+                  key: MYSQL_USER
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-keycloak
+                  key: MYSQL_PASSWORD
+            - name: KC_HOSTNAME
+              value: https://auth.lazycampus.com
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_CACHE
+              value: local
+            - name: KC_LOG_LEVEL
+              value: INFO
+            - name: JAVA_OPTS_KC_HEAP
+              value: -XX:InitialRAMPercentage=30 -XX:MaxRAMPercentage=65
+          envFrom:
+            - secretRef:
+                name: keycloak-runtime
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /realms/master
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: http
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /realms/master
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 768Mi
+            limits:
+              cpu: "2"
+              memory: 1536Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: realm-import
+          configMap:
+            name: keycloak-realm-import
+            items:
+              - key: lazycampus-realm.json
+                path: lazycampus-realm.json
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: identity-system
+spec:
+  selector:
+    app.kubernetes.io/name: keycloak
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keycloak-profile-reconciler
+  namespace: identity-system
+spec:
+  schedule: "17 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 4
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: keycloak-profile-reconciler
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: tcr-auth
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: ccr.ccs.tencentyun.com/lazycampus/keycloak:26.7.1@sha256:14a382edabb24f92e437911239f8bb344bd7b7612a03949b5b4a45278008a408
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -ec
+              args:
+                - |
+                  until /opt/keycloak/bin/kcadm.sh config credentials \
+                    --config /tmp/kcadm.config \
+                    --server http://keycloak:8080 \
+                    --realm master \
+                    --user "${KC_BOOTSTRAP_ADMIN_USERNAME}" \
+                    --password "${KC_BOOTSTRAP_ADMIN_PASSWORD}" >/dev/null 2>&1; do
+                    sleep 5
+                  done
+                  /opt/keycloak/bin/kcadm.sh update realms/lazycampus/users/profile \
+                    --config /tmp/kcadm.config \
+                    --file /config/user-profile.json
+              envFrom:
+                - secretRef:
+                    name: keycloak-runtime
+              volumeMounts:
+                - name: realm-config
+                  mountPath: /config
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 384Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+          volumes:
+            - name: realm-config
+              configMap:
+                name: keycloak-realm-import
+                items:
+                  - key: user-profile.json
+                    path: user-profile.json
+            - name: tmp
+              emptyDir:
+                sizeLimit: 32Mi

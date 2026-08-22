@@ -19,6 +19,9 @@ workloads exercised the same image automation path.
   loopback NodePort `32080` for the host Nginx TLS edge.
 - `infrastructure/mysql`: the cluster-wide MySQL 8.4 LTS service, retained data
   and backup volumes, and a daily logical backup job.
+- `infrastructure/identity`: Keycloak, Identity Bridge, the `lazycampus` realm,
+  Smart Shop OIDC client, campus identity broker, network policies, and image
+  automation for `auth.lazycampus.com`.
 - `infrastructure/domain-automation`: an opt-in controller that reconciles
   Ingress hosts into Tencent EdgeOne and Cloudflare DNS.
 - `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`.
@@ -48,7 +51,7 @@ unreachable from the public interface while allowing host Nginx to use it.
 
 After all application probes pass, `scripts/install-nginx-k3s-edge.sh` installs
 the versioned files in `host/nginx`, validates the complete Nginx configuration,
-and reloads it. A timestamped copy of all three previous site files is retained
+and reloads it. A timestamped copy of all four previous site files is retained
 under `/var/backups`; validation failure restores the old files automatically.
 
 Application credentials and registry pull credentials are intentionally absent
@@ -98,6 +101,43 @@ A logical backup of all databases runs daily at 03:17 Asia/Shanghai and keeps
 14 days under `/srv/k3s-backups/mysql`. These local backups protect against
 application-level mistakes but do not replace an off-server backup of the
 host paths and `/etc/platform-secrets`.
+
+## Unified identity platform
+
+The public identity endpoint is `https://auth.lazycampus.com`. Host Nginx
+terminates TLS and forwards only the campus broker and realm endpoints to the
+loopback Traefik NodePort. The Keycloak administration console is not exposed
+by the public Ingress.
+
+Before the first reconciliation, install and run the idempotent bootstrap:
+
+```sh
+install -m 0755 scripts/bootstrap-identity-secrets.sh \
+  /usr/local/sbin/bootstrap-identity-secrets
+/usr/local/sbin/bootstrap-identity-secrets
+```
+
+It creates the `identity-system` namespace, registry/runtime Secrets, dedicated
+`keycloak` and `identity_bridge` databases, and updates the existing Smart Shop
+runtime Secret with its Identity Bridge and OIDC settings. Recovery material
+remains under `/etc/platform-secrets`; rerunning the command preserves existing
+values. Keycloak imports the realm on first start, while the hourly profile
+reconciler keeps the managed identity attributes aligned with Git.
+
+Useful checks:
+
+```sh
+k3s kubectl -n identity-system get deploy,pod,service,ingress,cronjob
+k3s kubectl -n identity-system rollout status deployment/keycloak --timeout=600s
+k3s kubectl -n identity-system rollout status deployment/identity-bridge --timeout=300s
+curl -fsS https://auth.lazycampus.com/realms/lazycampus/.well-known/openid-configuration >/dev/null
+curl -fsS https://auth.lazycampus.com/campus/.well-known/openid-configuration >/dev/null
+```
+
+Smart Shop keeps its original application session and third-party login route,
+and additionally exposes the OIDC authorization-code flow. Easy SWU retains its
+existing mini-program session contract and delivers successful identity changes
+to Identity Bridge through its outbox when that application is deployed.
 
 ## Bootstrap-only secrets
 
