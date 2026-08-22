@@ -100,7 +100,9 @@ accepts API calls only from the server's public IP.
    existing A/CNAME, the adoption annotation shown above.
 3. Add a zone entry to `infrastructure/domain-automation/config.yaml` only when
    the hostname belongs to a new registered root domain. Include its Cloudflare
-   zone ID and choose either direct A records or EdgeOne CNAMEs.
+   zone ID and choose either direct A records or EdgeOne CNAMEs. Use
+   `hostHeaderOverrides` for an EdgeOne hostname that intentionally reuses a
+   different origin virtual host.
 4. Merge the change. Flux applies the Ingress, and the controller performs the
    EdgeOne/Cloudflare upsert. Cloud-side deletion remains a deliberate manual
    step.

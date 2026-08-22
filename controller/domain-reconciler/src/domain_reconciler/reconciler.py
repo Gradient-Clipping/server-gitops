@@ -78,6 +78,13 @@ class ZoneConfig:
     http_origin_port: int = 80
     ipv6_status: str = "follow"
     certificate_mode: str = "eofreecert"
+    host_header_overrides: tuple[tuple[str, str], ...] = ()
+
+    def host_header_for(self, hostname: str) -> str:
+        for managed_hostname, host_header in self.host_header_overrides:
+            if managed_hostname == hostname:
+                return host_header
+        return hostname
 
 
 @dataclasses.dataclass(frozen=True)
@@ -125,6 +132,19 @@ def load_zones(path: str | Path) -> tuple[ZoneConfig, ...]:
         zone_id = item.get("edgeoneZoneId")
         if mode == "edgeone" and not zone_id:
             raise ReconcileError(f"edgeoneZoneId is required for {domain}")
+        raw_host_headers = item.get("hostHeaderOverrides") or {}
+        if not isinstance(raw_host_headers, Mapping):
+            raise ReconcileError(f"hostHeaderOverrides must be an object for {domain}")
+        host_headers: dict[str, str] = {}
+        for raw_hostname, raw_host_header in raw_host_headers.items():
+            hostname = normalize_hostname(str(raw_hostname))
+            if not hostname_belongs_to_zone(hostname, domain):
+                raise ReconcileError(
+                    f"host header override {hostname} does not belong to {domain}"
+                )
+            if hostname in host_headers:
+                raise ReconcileError(f"duplicate host header override for {hostname}")
+            host_headers[hostname] = normalize_hostname(str(raw_host_header))
         ttl = int(item.get("ttl", 1))
         port = int(item.get("httpOriginPort", 80))
         if ttl != 1 and not 60 <= ttl <= 86400:
@@ -143,6 +163,7 @@ def load_zones(path: str | Path) -> tuple[ZoneConfig, ...]:
                 http_origin_port=port,
                 ipv6_status=str(item.get("ipv6Status", "follow")).lower(),
                 certificate_mode=str(item.get("certificateMode", "eofreecert")).lower(),
+                host_header_overrides=tuple(sorted(host_headers.items())),
             )
         )
     if not zones:
@@ -490,7 +511,7 @@ class DomainReconciler:
                 "OriginInfo": {
                     "OriginType": "IP_DOMAIN",
                     "Origin": zone.origin,
-                    "HostHeader": desired.hostname,
+                    "HostHeader": zone.host_header_for(desired.hostname),
                 },
                 "OriginProtocol": zone.origin_protocol,
                 "HttpOriginPort": zone.http_origin_port,
@@ -522,7 +543,7 @@ class DomainReconciler:
                 "OriginInfo": {
                     "OriginType": "IP_DOMAIN",
                     "Origin": zone.origin,
-                    "HostHeader": desired.hostname,
+                    "HostHeader": zone.host_header_for(desired.hostname),
                 },
                 "OriginProtocol": zone.origin_protocol,
                 "HttpOriginPort": zone.http_origin_port,
@@ -585,7 +606,7 @@ class DomainReconciler:
         ):
             drift.append("origin")
         host_header = str(origin.get("HostHeader") or "").rstrip(".").lower()
-        if host_header and host_header != desired.hostname:
+        if host_header and host_header != zone.host_header_for(desired.hostname):
             drift.append("hostHeader")
         if (
             "OriginProtocol" in existing
