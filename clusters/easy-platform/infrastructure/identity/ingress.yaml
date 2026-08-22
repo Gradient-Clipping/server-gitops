@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: identity-platform
+  namespace: identity-system
+  annotations:
+    platform.lazycampus.com/domain-automation: enabled
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: auth.lazycampus.com
+      http:
+        paths:
+          - path: /campus
+            pathType: Prefix
+            backend:
+              service:
+                name: identity-bridge
+                port:
+                  name: http
+          - path: /realms
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  name: http
+          - path: /resources
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  name: http

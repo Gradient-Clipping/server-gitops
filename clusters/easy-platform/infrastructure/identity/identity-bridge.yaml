@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-bridge
+  namespace: identity-system
+  labels:
+    app.kubernetes.io/name: identity-bridge
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: identity-bridge
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: identity-bridge
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: identity-bridge
+          image: ccr.ccs.tencentyun.com/lazycampus/identity-bridge:1.0.2 # {"$imagepolicy": "flux-system:identity-bridge"}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: HOST
+              value: 0.0.0.0
+            - name: PORT
+              value: "3000"
+            - name: LOG_LEVEL
+              value: info
+            - name: MYSQL_CONNECTION_LIMIT
+              value: "5"
+            - name: BRIDGE_ISSUER
+              value: https://auth.lazycampus.com/campus
+            - name: BRIDGE_OIDC_REDIRECT_URI
+              value: https://auth.lazycampus.com/realms/lazycampus/broker/campus/endpoint
+            - name: SWU_REQUEST_TIMEOUT_MS
+              value: "60000"
+          envFrom:
+            - secretRef:
+                name: mysql-identity-bridge
+            - secretRef:
+                name: identity-bridge-runtime
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-bridge
+  namespace: identity-system
+spec:
+  selector:
+    app.kubernetes.io/name: identity-bridge
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP

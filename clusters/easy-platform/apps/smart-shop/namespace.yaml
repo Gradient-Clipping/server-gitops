@@ -4,4 +4,5 @@ metadata:
   name: smart-shop
   labels:
     app.kubernetes.io/part-of: smart-shop
+    platform.lazycampus.com/identity-client: "true"
     pod-security.kubernetes.io/enforce: restricted

@@ -1,0 +1,337 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm-import
+  namespace: identity-system
+data:
+  lazycampus-realm.json: |
+    {
+      "realm": "lazycampus",
+      "displayName": "Lazy Campus",
+      "enabled": true,
+      "sslRequired": "none",
+      "registrationAllowed": false,
+      "registrationEmailAsUsername": false,
+      "rememberMe": false,
+      "verifyEmail": false,
+      "loginWithEmailAllowed": false,
+      "duplicateEmailsAllowed": true,
+      "resetPasswordAllowed": false,
+      "editUsernameAllowed": false,
+      "defaultSignatureAlgorithm": "RS256",
+      "revokeRefreshToken": true,
+      "refreshTokenMaxReuse": 0,
+      "accessTokenLifespan": 300,
+      "accessCodeLifespan": 60,
+      "accessCodeLifespanLogin": 600,
+      "ssoSessionIdleTimeout": 28800,
+      "ssoSessionMaxLifespan": 43200,
+      "offlineSessionMaxLifespanEnabled": false,
+      "bruteForceProtected": true,
+      "permanentLockout": false,
+      "maxFailureWaitSeconds": 900,
+      "minimumQuickLoginWaitSeconds": 60,
+      "waitIncrementSeconds": 60,
+      "quickLoginCheckMilliSeconds": 1000,
+      "maxDeltaTimeSeconds": 43200,
+      "failureFactor": 5,
+      "otpPolicyType": "totp",
+      "otpPolicyAlgorithm": "HmacSHA1",
+      "otpPolicyDigits": 6,
+      "otpPolicyLookAheadWindow": 1,
+      "otpPolicyPeriod": 30,
+      "eventsEnabled": true,
+      "eventsExpiration": 2592000,
+      "eventsListeners": ["jboss-logging"],
+      "adminEventsEnabled": true,
+      "adminEventsDetailsEnabled": true,
+      "roles": {
+        "realm": [
+          {
+            "name": "platform-admin",
+            "description": "Lazy Campus platform administrator"
+          }
+        ],
+        "client": {
+          "smart-shop": [
+            {
+              "name": "smart-shop-admin",
+              "description": "Smart Shop administrator"
+            }
+          ]
+        }
+      },
+      "clients": [
+        {
+          "clientId": "smart-shop",
+          "name": "Smart Shop",
+          "enabled": true,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${SMART_SHOP_OIDC_CLIENT_SECRET}",
+          "publicClient": false,
+          "bearerOnly": false,
+          "consentRequired": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false,
+          "frontchannelLogout": true,
+          "redirectUris": [
+            "https://shop-api.lazycampus.com/auth/oidc/callback"
+          ],
+          "webOrigins": [
+            "https://shop.lazycampus.com"
+          ],
+          "attributes": {
+            "pkce.code.challenge.method": "S256",
+            "post.logout.redirect.uris": "https://shop.lazycampus.com/login"
+          },
+          "defaultClientScopes": [
+            "web-origins",
+            "acr",
+            "profile",
+            "roles",
+            "basic",
+            "email"
+          ],
+          "optionalClientScopes": [],
+          "protocolMappers": [
+            {
+              "name": "identity-id",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-attribute-mapper",
+              "consentRequired": false,
+              "config": {
+                "user.attribute": "identity_id",
+                "claim.name": "identity_id",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true",
+                "introspection.token.claim": "true",
+                "multivalued": "false"
+              }
+            },
+            {
+              "name": "student-number",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-attribute-mapper",
+              "consentRequired": false,
+              "config": {
+                "user.attribute": "student_number",
+                "claim.name": "student_number",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true",
+                "introspection.token.claim": "true",
+                "multivalued": "false"
+              }
+            },
+            {
+              "name": "id-number",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-attribute-mapper",
+              "consentRequired": false,
+              "config": {
+                "user.attribute": "id_number",
+                "claim.name": "id_number",
+                "jsonType.label": "String",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true",
+                "introspection.token.claim": "true",
+                "multivalued": "false"
+              }
+            }
+          ]
+        }
+      ],
+      "identityProviders": [
+        {
+          "alias": "campus",
+          "displayName": "学校账号",
+          "providerId": "oidc",
+          "enabled": true,
+          "updateProfileFirstLoginMode": "off",
+          "trustEmail": false,
+          "storeToken": false,
+          "addReadTokenRoleOnCreate": false,
+          "authenticateByDefault": false,
+          "linkOnly": false,
+          "hideOnLogin": false,
+          "firstBrokerLoginFlowAlias": "first broker login",
+          "config": {
+            "issuer": "https://auth.lazycampus.com/campus",
+            "authorizationUrl": "https://auth.lazycampus.com/campus/auth",
+            "tokenUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/token",
+            "logoutUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/session/end",
+            "userInfoUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/me",
+            "jwksUrl": "http://identity-bridge.identity-system.svc.cluster.local:3000/campus/jwks",
+            "clientId": "keycloak-campus-bridge",
+            "clientSecret": "${BRIDGE_OIDC_CLIENT_SECRET}",
+            "clientAuthMethod": "client_secret_post",
+            "defaultScope": "openid profile email identity",
+            "useJwksUrl": "true",
+            "validateSignature": "true",
+            "disableUserInfo": "false",
+            "syncMode": "FORCE",
+            "caseSensitiveOriginalUsername": "false"
+          }
+        }
+      ],
+      "identityProviderMappers": [
+        {
+          "name": "identity-id",
+          "identityProviderAlias": "campus",
+          "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+          "config": {
+            "claim": "identity_id",
+            "user.attribute": "identity_id",
+            "syncMode": "INHERIT"
+          }
+        },
+        {
+          "name": "student-number",
+          "identityProviderAlias": "campus",
+          "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+          "config": {
+            "claim": "student_number",
+            "user.attribute": "student_number",
+            "syncMode": "INHERIT"
+          }
+        },
+        {
+          "name": "id-number",
+          "identityProviderAlias": "campus",
+          "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+          "config": {
+            "claim": "id_number",
+            "user.attribute": "id_number",
+            "syncMode": "INHERIT"
+          }
+        }
+      ],
+      "users": [
+        {
+          "username": "${PLATFORM_ADMIN_USERNAME}",
+          "enabled": true,
+          "emailVerified": true,
+          "firstName": "Platform",
+          "lastName": "Administrator",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "${PLATFORM_ADMIN_PASSWORD}",
+              "temporary": true
+            }
+          ],
+          "requiredActions": [
+            "UPDATE_PASSWORD",
+            "CONFIGURE_TOTP"
+          ],
+          "realmRoles": [
+            "platform-admin"
+          ],
+          "clientRoles": {
+            "smart-shop": [
+              "smart-shop-admin"
+            ]
+          }
+        }
+      ]
+    }
+  user-profile.json: |
+    {
+      "attributes": [
+        {
+          "name": "username",
+          "displayName": "${username}",
+          "permissions": {
+            "view": ["admin", "user"],
+            "edit": ["admin"]
+          },
+          "validations": {
+            "length": {"min": 3, "max": 255},
+            "username-prohibited-characters": {},
+            "up-username-not-idn-homograph": {}
+          }
+        },
+        {
+          "name": "email",
+          "displayName": "${email}",
+          "permissions": {
+            "view": ["admin", "user"],
+            "edit": ["admin", "user"]
+          },
+          "validations": {
+            "email": {},
+            "length": {"max": 255}
+          }
+        },
+        {
+          "name": "firstName",
+          "displayName": "${firstName}",
+          "permissions": {
+            "view": ["admin", "user"],
+            "edit": ["admin", "user"]
+          },
+          "validations": {
+            "length": {"max": 255},
+            "person-name-prohibited-characters": {}
+          }
+        },
+        {
+          "name": "lastName",
+          "displayName": "${lastName}",
+          "permissions": {
+            "view": ["admin", "user"],
+            "edit": ["admin", "user"]
+          },
+          "validations": {
+            "length": {"max": 255},
+            "person-name-prohibited-characters": {}
+          }
+        },
+        {
+          "name": "identity_id",
+          "displayName": "Identity ID",
+          "permissions": {
+            "view": ["admin"],
+            "edit": ["admin"]
+          },
+          "validations": {
+            "length": {"max": 36}
+          }
+        },
+        {
+          "name": "student_number",
+          "displayName": "Student number",
+          "permissions": {
+            "view": ["admin", "user"],
+            "edit": ["admin"]
+          },
+          "validations": {
+            "length": {"max": 64}
+          }
+        },
+        {
+          "name": "id_number",
+          "displayName": "ID number",
+          "permissions": {
+            "view": ["admin"],
+            "edit": ["admin"]
+          },
+          "validations": {
+            "length": {"max": 64}
+          }
+        }
+      ],
+      "groups": [
+        {
+          "name": "user-metadata",
+          "displayHeader": "User metadata",
+          "displayDescription": "Attributes managed by the identity platform"
+        }
+      ]
+    }
