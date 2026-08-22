@@ -65,6 +65,14 @@ data:
           ]
         }
       },
+      "groups": [
+        {
+          "name": "headlamp-viewers"
+        }
+      ],
+      "defaultGroups": [
+        "/headlamp-viewers"
+      ],
       "clients": [
         {
           "clientId": "smart-shop",
@@ -146,6 +154,56 @@ data:
                 "userinfo.token.claim": "true",
                 "introspection.token.claim": "true",
                 "multivalued": "false"
+              }
+            }
+          ]
+        },
+        {
+          "clientId": "headlamp",
+          "name": "Headlamp",
+          "enabled": true,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${HEADLAMP_OIDC_CLIENT_SECRET}",
+          "publicClient": false,
+          "bearerOnly": false,
+          "consentRequired": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false,
+          "frontchannelLogout": true,
+          "redirectUris": [
+            "https://headlamp.lazycampus.com/oidc-callback"
+          ],
+          "webOrigins": [
+            "https://headlamp.lazycampus.com"
+          ],
+          "attributes": {
+            "pkce.code.challenge.method": "S256",
+            "post.logout.redirect.uris": "https://headlamp.lazycampus.com/*"
+          },
+          "defaultClientScopes": [
+            "web-origins",
+            "acr",
+            "profile",
+            "roles",
+            "basic",
+            "email"
+          ],
+          "optionalClientScopes": [],
+          "protocolMappers": [
+            {
+              "name": "groups",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-group-membership-mapper",
+              "consentRequired": false,
+              "config": {
+                "full.path": "false",
+                "claim.name": "groups",
+                "id.token.claim": "true",
+                "access.token.claim": "true",
+                "userinfo.token.claim": "true",
+                "introspection.token.claim": "true"
               }
             }
           ]
@@ -238,11 +296,31 @@ data:
           "realmRoles": [
             "platform-admin"
           ],
+          "groups": [
+            "/headlamp-viewers"
+          ],
           "clientRoles": {
             "smart-shop": [
               "smart-shop-admin"
             ]
           }
+        },
+        {
+          "username": "ystemsrx",
+          "enabled": true,
+          "emailVerified": true,
+          "firstName": "Platform",
+          "lastName": "Administrator",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "${HEADLAMP_ADMIN_PASSWORD}",
+              "temporary": false
+            }
+          ],
+          "groups": [
+            "/headlamp-viewers"
+          ]
         }
       ]
     }
@@ -346,5 +424,54 @@ data:
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "https://shop.lazycampus.com/login"
+      }
+    }
+  headlamp-client.json: |
+    {
+      "clientId": "headlamp",
+      "name": "Headlamp",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "https://headlamp.lazycampus.com/oidc-callback"
+      ],
+      "webOrigins": [
+        "https://headlamp.lazycampus.com"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://headlamp.lazycampus.com/*"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": []
+    }
+  headlamp-groups-mapper.json: |
+    {
+      "name": "groups",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-group-membership-mapper",
+      "consentRequired": false,
+      "config": {
+        "full.path": "false",
+        "claim.name": "groups",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "introspection.token.claim": "true"
       }
     }

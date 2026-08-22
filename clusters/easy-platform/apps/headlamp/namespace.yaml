@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: headlamp-system
+  labels:
+    app.kubernetes.io/part-of: headlamp
+    pod-security.kubernetes.io/enforce: restricted

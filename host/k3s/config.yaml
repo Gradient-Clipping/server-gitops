@@ -1,0 +1,20 @@
+write-kubeconfig-mode: "0640"
+secrets-encryption: true
+disable:
+  - traefik
+  - servicelb
+node-name: easy-platform-1
+node-label:
+  - platform.easy-swu.dev/role=core
+kubelet-arg:
+  - image-gc-high-threshold=75
+  - image-gc-low-threshold=60
+kube-proxy-arg:
+  - nodeport-addresses=127.0.0.0/8
+kube-apiserver-arg:
+  - oidc-issuer-url=https://auth.lazycampus.com/realms/lazycampus
+  - oidc-client-id=headlamp
+  - oidc-username-claim=preferred_username
+  - "oidc-username-prefix=keycloak:"
+  - oidc-groups-claim=groups
+  - "oidc-groups-prefix=keycloak:"

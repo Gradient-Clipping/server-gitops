@@ -38,6 +38,7 @@ write_fixed_file() {
 require_file "${SECRET_DIR}/tcr-username"
 require_file "${SECRET_DIR}/tcr-password"
 require_file "${SECRET_DIR}/smart-shop.env"
+require_file "${SECRET_DIR}/headlamp-admin-password"
 
 write_fixed_file "${SECRET_DIR}/keycloak-bootstrap-admin-username" "platform-bootstrap-admin"
 write_fixed_file "${SECRET_DIR}/keycloak-platform-admin-username" "platform-admin"
@@ -45,6 +46,7 @@ generate_hex_file "${SECRET_DIR}/keycloak-bootstrap-admin-password" 24
 generate_hex_file "${SECRET_DIR}/keycloak-platform-admin-password" 24
 generate_hex_file "${SECRET_DIR}/identity-bridge-oidc-client-secret" 32
 generate_hex_file "${SECRET_DIR}/smart-shop-oidc-client-secret" 32
+generate_hex_file "${SECRET_DIR}/headlamp-oidc-client-secret" 32
 generate_hex_file "${SECRET_DIR}/smart-shop-login-api-token" 32
 generate_hex_file "${SECRET_DIR}/easy-swu-identity-sync-token" 32
 generate_hex_file "${SECRET_DIR}/identity-bridge-cookie-key-current" 32
@@ -74,12 +76,19 @@ ${KUBECTL} create namespace smart-shop --dry-run=client -o yaml \
 ${KUBECTL} label namespace smart-shop \
   platform.lazycampus.com/identity-client=true \
   --overwrite >/dev/null
+${KUBECTL} create namespace headlamp-system --dry-run=client -o yaml \
+  | ${KUBECTL} apply -f - >/dev/null
+${KUBECTL} label namespace headlamp-system \
+  app.kubernetes.io/part-of=headlamp \
+  pod-security.kubernetes.io/enforce=restricted \
+  --overwrite >/dev/null
 
 docker_config="$(mktemp)"
 bridge_env="$(mktemp)"
 keycloak_env="$(mktemp)"
+headlamp_env="$(mktemp)"
 cleanup() {
-  rm -f -- "${docker_config}" "${bridge_env}" "${keycloak_env}"
+  rm -f -- "${docker_config}" "${bridge_env}" "${keycloak_env}" "${headlamp_env}"
 }
 trap cleanup EXIT
 
@@ -104,11 +113,13 @@ output_path.write_text(
 )
 PY
 
-${KUBECTL} --namespace "${NAMESPACE}" create secret generic tcr-auth \
-  --type=kubernetes.io/dockerconfigjson \
-  --from-file=.dockerconfigjson="${docker_config}" \
-  --dry-run=client -o yaml \
-  | ${KUBECTL} apply -f - >/dev/null
+for namespace in "${NAMESPACE}" headlamp-system; do
+  ${KUBECTL} --namespace "${namespace}" create secret generic tcr-auth \
+    --type=kubernetes.io/dockerconfigjson \
+    --from-file=.dockerconfigjson="${docker_config}" \
+    --dry-run=client -o yaml \
+    | ${KUBECTL} apply -f - >/dev/null
+done
 
 provision_script="/usr/local/sbin/provision-mysql-database"
 if [[ ! -x "${provision_script}" ]]; then
@@ -117,13 +128,14 @@ fi
 "${provision_script}" keycloak "${NAMESPACE}" mysql-keycloak keycloak_app
 "${provision_script}" identity_bridge "${NAMESPACE}" mysql-identity-bridge identity_bridge_app
 
-python3 - "${bridge_env}" "${keycloak_env}" "${SECRET_DIR}" <<'PY'
+python3 - "${bridge_env}" "${keycloak_env}" "${headlamp_env}" "${SECRET_DIR}" <<'PY'
 import pathlib
 import sys
 
 bridge_path = pathlib.Path(sys.argv[1])
 keycloak_path = pathlib.Path(sys.argv[2])
-secret_dir = pathlib.Path(sys.argv[3])
+headlamp_path = pathlib.Path(sys.argv[3])
+secret_dir = pathlib.Path(sys.argv[4])
 
 def read(name: str) -> str:
     value = (secret_dir / name).read_text(encoding="utf-8").strip()
@@ -149,11 +161,24 @@ keycloak_values = {
     "KC_BOOTSTRAP_ADMIN_PASSWORD": read("keycloak-bootstrap-admin-password"),
     "BRIDGE_OIDC_CLIENT_SECRET": read("identity-bridge-oidc-client-secret"),
     "SMART_SHOP_OIDC_CLIENT_SECRET": read("smart-shop-oidc-client-secret"),
+    "HEADLAMP_OIDC_CLIENT_SECRET": read("headlamp-oidc-client-secret"),
+    "HEADLAMP_ADMIN_PASSWORD": read("headlamp-admin-password"),
     "PLATFORM_ADMIN_USERNAME": read("keycloak-platform-admin-username"),
     "PLATFORM_ADMIN_PASSWORD": read("keycloak-platform-admin-password"),
 }
+headlamp_values = {
+    "OIDC_CLIENT_ID": "headlamp",
+    "OIDC_CLIENT_SECRET": read("headlamp-oidc-client-secret"),
+    "OIDC_ISSUER_URL": "https://auth.lazycampus.com/realms/lazycampus",
+    "OIDC_CALLBACK_URL": "https://headlamp.lazycampus.com/oidc-callback",
+    "OIDC_SCOPES": "profile,email,groups",
+}
 
-for path, values in ((bridge_path, bridge_values), (keycloak_path, keycloak_values)):
+for path, values in (
+    (bridge_path, bridge_values),
+    (keycloak_path, keycloak_values),
+    (headlamp_path, headlamp_values),
+):
     path.write_text(
         "".join(f"{key}={value}\n" for key, value in values.items()),
         encoding="utf-8",
@@ -166,6 +191,10 @@ ${KUBECTL} --namespace "${NAMESPACE}" create secret generic identity-bridge-runt
   | ${KUBECTL} apply -f - >/dev/null
 ${KUBECTL} --namespace "${NAMESPACE}" create secret generic keycloak-runtime \
   --from-env-file="${keycloak_env}" \
+  --dry-run=client -o yaml \
+  | ${KUBECTL} apply -f - >/dev/null
+${KUBECTL} --namespace headlamp-system create secret generic headlamp-oidc \
+  --from-env-file="${headlamp_env}" \
   --dry-run=client -o yaml \
   | ${KUBECTL} apply -f - >/dev/null
 
@@ -235,4 +264,4 @@ ${KUBECTL} --namespace smart-shop create secret generic smart-shop-env \
   --dry-run=client -o yaml \
   | ${KUBECTL} apply -f - >/dev/null
 
-echo "Identity databases and runtime secrets are ready; Smart Shop configuration was updated."
+echo "Identity databases and runtime secrets are ready; Smart Shop and Headlamp configuration was updated."

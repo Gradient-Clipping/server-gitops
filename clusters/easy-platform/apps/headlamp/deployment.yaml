@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: headlamp
+  namespace: headlamp-system
+  labels:
+    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/version: 0.44.0
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: headlamp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: headlamp
+    spec:
+      serviceAccountName: headlamp
+      automountServiceAccountToken: true
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
+        fsGroup: 101
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: headlamp
+          image: ccr.ccs.tencentyun.com/lazycampus/headlamp:v0.44.0@sha256:b6e0035cbf88c723d86399f8d69b1a437f5d0ce079c00bbd0a2ed7455fcb2d98
+          imagePullPolicy: IfNotPresent
+          args:
+            - -in-cluster
+            - -in-cluster-context-name=main
+            - -oidc-client-id=$(OIDC_CLIENT_ID)
+            - -oidc-client-secret=$(OIDC_CLIENT_SECRET)
+            - -oidc-idp-issuer-url=$(OIDC_ISSUER_URL)
+            - -oidc-callback-url=$(OIDC_CALLBACK_URL)
+            - -oidc-scopes=$(OIDC_SCOPES)
+            - -oidc-use-pkce=true
+            - -session-ttl=2592000
+          env:
+            - name: OIDC_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: OIDC_CLIENT_ID
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: OIDC_CLIENT_SECRET
+            - name: OIDC_ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: OIDC_ISSUER_URL
+            - name: OIDC_CALLBACK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: OIDC_CALLBACK_URL
+            - name: OIDC_SCOPES
+              valueFrom:
+                secretKeyRef:
+                  name: headlamp-oidc
+                  key: OIDC_SCOPES
+            - name: HEADLAMP_STATIC_PLUGINS_DIR
+              value: ""
+          ports:
+            - name: http
+              containerPort: 4466
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headlamp
+  namespace: headlamp-system
+  labels:
+    app.kubernetes.io/name: headlamp
+spec:
+  selector:
+    app.kubernetes.io/name: headlamp
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
