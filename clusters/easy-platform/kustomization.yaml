@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - flux-system/gotk-sync.yaml
   - infrastructure/ingress
+  - infrastructure/domain-automation
   - apps/lazycampus-site
   - apps/bbbto-mnp
   - apps/smart-shop

@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   name: lazycampus-site
   namespace: lazycampus-site
+  annotations:
+    platform.lazycampus.com/domain-automation: enabled
+    platform.lazycampus.com/domain-adopt-existing: "true"
 spec:
   ingressClassName: traefik
   rules:

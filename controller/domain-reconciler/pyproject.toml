@@ -1,0 +1,9 @@
+[project]
+name = "domain-reconciler"
+version = "1.0.0"
+description = "Reconcile Kubernetes Ingress hosts into Tencent EdgeOne and Cloudflare DNS"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv]
+package = false

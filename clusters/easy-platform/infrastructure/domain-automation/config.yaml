@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: domain-reconciler-config
+  namespace: domain-system
+data:
+  zones.json: |
+    {
+      "zones": [
+        {
+          "domain": "lazycampus.com",
+          "mode": "edgeone",
+          "cloudflareZoneId": "b3587d327b62aaef899b5936e4d6d272",
+          "edgeoneZoneId": "zone-3solmvkeru39",
+          "origin": "1.14.95.189",
+          "originProtocol": "HTTP",
+          "httpOriginPort": 80,
+          "ipv6Status": "follow",
+          "certificateMode": "eofreecert",
+          "ttl": 1
+        },
+        {
+          "domain": "bbbto.com",
+          "mode": "direct",
+          "origin": "1.14.95.189",
+          "cloudflareZoneId": "26c7ec5a9e2743e2e8368378142aba0c",
+          "ttl": 1
+        }
+      ]
+    }

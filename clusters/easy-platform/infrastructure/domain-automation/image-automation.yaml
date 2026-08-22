@@ -1,0 +1,51 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: domain-reconciler
+  namespace: flux-system
+spec:
+  image: ccr.ccs.tencentyun.com/lazycampus/domain-reconciler
+  interval: 1m0s
+  secretRef:
+    name: tcr-auth
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: domain-reconciler
+  namespace: flux-system
+spec:
+  filterTags:
+    extract: $build
+    pattern: ^1\.0\.(?P<build>[0-9]+)$
+  imageRepositoryRef:
+    name: domain-reconciler
+  policy:
+    numerical:
+      order: asc
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: domain-reconciler
+  namespace: flux-system
+spec:
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: flux@lazycampus.com
+        name: Flux Image Automation
+      messageTemplate: "chore(images): update domain-reconciler"
+    push:
+      branch: main
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  update:
+    path: ./clusters/easy-platform/infrastructure/domain-automation
+    strategy: Setters
+

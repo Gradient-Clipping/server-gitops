@@ -17,6 +17,8 @@ workloads exercised the same image automation path.
 
 - `infrastructure/ingress`: the bundled K3s Traefik chart, exposed only on the
   loopback NodePort `32080` for the host Nginx TLS edge.
+- `infrastructure/domain-automation`: an opt-in controller that reconciles
+  Ingress hosts into Tencent EdgeOne and Cloudflare DNS.
 - `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`.
 - `apps/bbbto-mnp`: `bbbto.com` and `www.bbbto.com`, including a retained
   SQLite persistent volume.
@@ -24,9 +26,16 @@ workloads exercised the same image automation path.
   `shop-api.lazycampus.com`, including retained SQLite, uploads, public assets,
   exports, logs, and Redis volumes.
 
-Domains are declared in each application's `ingress.yaml`. DNS and certificates
-remain at Tencent EdgeOne/Nginx; host Nginx forwards the original `Host` header
-to Traefik.
+Domains are declared in each application's `ingress.yaml`. An Ingress with
+`platform.lazycampus.com/domain-automation: enabled` is reconciled every minute.
+Hosts under `lazycampus.com` receive an EdgeOne acceleration domain, a
+Cloudflare DNS-only CNAME, and an EdgeOne free certificate. Hosts under
+`bbbto.com` receive a Cloudflare DNS-only A record pointing to the server. The
+controller updates an existing A/AAAA/CNAME only when
+`platform.lazycampus.com/domain-adopt-existing: "true"` is present. It
+deliberately never deletes a cloud domain or DNS record when a host is removed
+from Git, so accidental manifest deletion cannot remove production DNS. Host
+Nginx continues to forward the original `Host` header to Traefik.
 
 Before installing Traefik, run `scripts/configure-k3s-nodeports.sh` once on the
 server. It restricts every Kubernetes NodePort to `127.0.0.0/8`, restarts K3s,
@@ -67,8 +76,34 @@ The following Kubernetes secrets are intentionally created out of band and are n
 - `smart-shop/smart-shop-env`: the existing production environment.
 - `smart-shop/smart-shop-registration-validation`: the existing local student
   number validation policy.
+- `domain-system/tencentcloud-credentials`: a dedicated CAM API key limited to
+  the EdgeOne read-and-upsert actions used by domain automation.
+- `domain-system/cloudflare-credentials`: an API token with DNS Write access
+  limited to the `lazycampus.com` and `bbbto.com` zones.
+- `domain-system/tcr-auth`: the registry pull credential for the controller.
 
 K3s encrypts Kubernetes secrets at rest. Their recovery material is stored root-only on the server and must be included in server backups.
+
+Create the three root-only files `tencentcloud-secret-id`,
+`tencentcloud-secret-key`, and `cloudflare-api-token` in
+`/etc/platform-secrets`, then run
+`scripts/bootstrap-domain-reconciler-secrets.sh`. The script also copies the
+existing TCR credential into `domain-system` and never prints any secret value.
+The custom CAM policy is versioned at
+`policies/tencent-domain-reconciler.json`; it contains no delete permission and
+accepts API calls only from the server's public IP.
+
+## Adding a domain
+
+1. Add the hostname and route to the application's `Ingress` in this repository.
+2. Add the domain automation annotation and, when intentionally taking over an
+   existing A/CNAME, the adoption annotation shown above.
+3. Add a zone entry to `infrastructure/domain-automation/config.yaml` only when
+   the hostname belongs to a new registered root domain. Include its Cloudflare
+   zone ID and choose either direct A records or EdgeOne CNAMEs.
+4. Merge the change. Flux applies the Ingress, and the controller performs the
+   EdgeOne/Cloudflare upsert. Cloud-side deletion remains a deliberate manual
+   step.
 
 Flux uses GitHub directly because repeated checks from the server were consistently successful, while the EdgeOne-hosted Xget endpoint intermittently returned upstream `504` responses for this private repository. `xget.lazycampus.com` remains available as an IP-restricted fallback and Gitee is not part of the delivery path.
 

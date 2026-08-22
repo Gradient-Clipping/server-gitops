@@ -26,5 +26,20 @@ jobs:
       - name: Render cluster manifests
         run: kubectl kustomize clusters/easy-platform >/tmp/easy-platform.yaml
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Test domain reconciler
+        env:
+          PYTHONPATH: controller/domain-reconciler/src
+        run: |
+          python -m compileall -q controller/domain-reconciler/src
+          python -m unittest discover -s controller/domain-reconciler/tests -v
+
+      - name: Build domain reconciler image
+        run: docker build --tag domain-reconciler:verify controller/domain-reconciler
+
       - name: Validate host scripts
         run: bash -n scripts/*.sh
