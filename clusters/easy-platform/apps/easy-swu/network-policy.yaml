@@ -1,0 +1,192 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-default-deny
+  namespace: easy-swu
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-dns-egress
+  namespace: easy-swu
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-api-access
+  namespace: easy-swu
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-system
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-admin
+      ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-redis
+      ports:
+        - port: 6379
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-minio
+      ports:
+        - port: 9000
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mysql-system
+      ports:
+        - port: 3306
+          protocol: TCP
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: identity-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: identity-bridge
+      ports:
+        - port: 3000
+          protocol: TCP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+        - port: 1
+          endPort: 65535
+          protocol: UDP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-admin-access
+  namespace: easy-swu
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-admin
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-system
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-api
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-redis-access
+  namespace: easy-swu
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-api
+      ports:
+        - port: 6379
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-minio-access
+  namespace: easy-swu
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-minio
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-minio-backup
+      ports:
+        - port: 9000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: easy-swu-backup-egress
+  namespace: easy-swu
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-minio-backup
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-minio
+      ports:
+        - port: 9000
+          protocol: TCP

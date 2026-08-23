@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: easy-swu
+  labels:
+    app.kubernetes.io/part-of: easy-swu
+    platform.lazycampus.com/identity-client: "true"
+    pod-security.kubernetes.io/enforce: restricted

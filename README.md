@@ -30,6 +30,9 @@ workloads exercised the same image automation path.
 - `apps/smart-shop`: `shop.lazycampus.com` and
   `shop-api.lazycampus.com`, including retained SQLite, uploads, public assets,
   exports, logs, and Redis volumes.
+- `apps/easy-swu`: `easy-api.lazycampus.com` and
+  `easy-admin.lazycampus.com`, including the mini-program API, management UI,
+  Redis, MinIO, a persistent Tailscale userspace gateway, and MinIO backups.
 
 Domains are declared in each application's `ingress.yaml`. An Ingress with
 `platform.lazycampus.com/domain-automation: enabled` is reconciled every minute.
@@ -51,7 +54,7 @@ unreachable from the public interface while allowing host Nginx to use it.
 
 After all application probes pass, `scripts/install-nginx-k3s-edge.sh` installs
 the versioned files in `host/nginx`, validates the complete Nginx configuration,
-and reloads it. A timestamped copy of all four previous site files is retained
+and reloads it. A timestamped copy of every previous site file is retained
 under `/var/backups`; validation failure restores the old files automatically.
 
 Application credentials and registry pull credentials are intentionally absent
@@ -67,7 +70,11 @@ reclaim policy, and the following host paths:
 - `/srv/k3s-data/smart-shop`
 - `/srv/k3s-data/smart-shop-redis`
 - `/srv/k3s-data/mysql`
+- `/srv/k3s-data/easy-swu/redis`
+- `/srv/k3s-data/easy-swu/minio`
+- `/srv/k3s-data/easy-swu/tailscale`
 - `/srv/k3s-backups/mysql`
+- `/srv/k3s-backups/easy-swu-minio`
 
 Deleting a Deployment, namespace, PVC, or Flux object does not delete these
 directories. Back them up before schema-changing releases.
@@ -137,7 +144,43 @@ curl -fsS https://auth.lazycampus.com/campus/.well-known/openid-configuration >/
 Smart Shop keeps its original application session and third-party login route,
 and additionally exposes the OIDC authorization-code flow. Easy SWU retains its
 existing mini-program session contract and delivers successful identity changes
-to Identity Bridge through its outbox when that application is deployed.
+to Identity Bridge through its outbox.
+
+## Easy SWU
+
+Before the first Easy SWU reconciliation, place its existing administrator,
+Baidu Maps, and Tailscale values in the root-only files documented by
+`scripts/bootstrap-easy-swu-secrets.sh`, then install and run the idempotent
+bootstrap:
+
+```sh
+install -m 0755 scripts/bootstrap-easy-swu-secrets.sh \
+  /usr/local/sbin/bootstrap-easy-swu-secrets
+/usr/local/sbin/bootstrap-easy-swu-secrets
+```
+
+The bootstrap creates the `easy_swu` database and least-privilege account,
+generates new API and MinIO secrets, restores TCR pull access, prepares retained
+host directories, and creates the runtime Secrets without printing their
+values. The API performs its own ordered migrations before serving traffic.
+
+The Tailscale sidecar uses userspace networking and exposes only a loopback HTTP
+proxy to the API container. Its state survives Pod recreation under
+`/srv/k3s-data/easy-swu/tailscale`; DNS takeover is disabled so Kubernetes
+service discovery continues to use CoreDNS. Redis contains sessions and cache,
+while MinIO contains calendars and publication media. MinIO is mirrored daily
+to `/srv/k3s-backups/easy-swu-minio` with 14-day retention; the shared MySQL
+backup includes the `easy_swu` database.
+
+Useful checks:
+
+```sh
+k3s kubectl -n easy-swu get deploy,pod,service,ingress,pvc,cronjob
+k3s kubectl -n easy-swu rollout status deployment/easy-swu-api --timeout=600s
+k3s kubectl -n easy-swu rollout status deployment/easy-swu-admin --timeout=300s
+curl -fsS https://easy-api.lazycampus.com/api/v1/system/ready
+curl -fsS https://easy-admin.lazycampus.com/healthz
+```
 
 ## Bootstrap-only secrets
 
@@ -146,8 +189,8 @@ The following Kubernetes secrets are intentionally created out of band and are n
 - `flux-system/flux-system`: a fine-grained GitHub token scoped to this repository for read/write GitOps reconciliation.
 - `flux-system/tcr-auth`: the Tencent TCR credential used by image reflection.
 - `ingress-system/tcr-auth`, `lazycampus-site/tcr-auth`,
-  `bbbto-mnp/tcr-auth`, and `smart-shop/tcr-auth`: namespace-scoped TCR pull
-  credentials.
+  `bbbto-mnp/tcr-auth`, `smart-shop/tcr-auth`, and `easy-swu/tcr-auth`:
+  namespace-scoped TCR pull credentials.
 - `bbbto-mnp/bbbto-runtime`: the existing book mapping and WeChat credentials.
 - `smart-shop/smart-shop-env`: the existing production environment.
 - `smart-shop/smart-shop-registration-validation`: the existing local student
@@ -160,6 +203,11 @@ The following Kubernetes secrets are intentionally created out of band and are n
 - `mysql-system/tcr-auth`: the registry pull credential for MySQL.
 - `mysql-system/mysql-credentials`: fixed root and backup-user passwords used
   by MySQL initialization and daily backups.
+- `easy-swu/mysql-easy-swu`: the dedicated shared-MySQL connection values.
+- `easy-swu/easy-swu-runtime`: API, administrator, MinIO, Baidu Maps, and
+  Identity Bridge synchronization values.
+- `easy-swu/easy-swu-tailscale`: the Tailscale enrollment key used only by the
+  campus-network sidecar.
 
 K3s encrypts Kubernetes secrets at rest. Their recovery material is stored root-only on the server and must be included in server backups.
 

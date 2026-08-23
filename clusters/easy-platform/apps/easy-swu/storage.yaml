@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: easy-swu-redis
+  labels:
+    app.kubernetes.io/name: easy-swu-redis
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: easy-swu-redis-hostpath
+  hostPath:
+    path: /srv/k3s-data/easy-swu/redis
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: easy-swu-redis
+  namespace: easy-swu
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: easy-swu-redis-hostpath
+  volumeName: easy-swu-redis
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: easy-swu-minio
+  labels:
+    app.kubernetes.io/name: easy-swu-minio
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: easy-swu-minio-hostpath
+  hostPath:
+    path: /srv/k3s-data/easy-swu/minio
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: easy-swu-minio
+  namespace: easy-swu
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: easy-swu-minio-hostpath
+  volumeName: easy-swu-minio
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: easy-swu-tailscale
+  labels:
+    app.kubernetes.io/name: easy-swu-tailscale
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: easy-swu-tailscale-hostpath
+  hostPath:
+    path: /srv/k3s-data/easy-swu/tailscale
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: easy-swu-tailscale
+  namespace: easy-swu
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: easy-swu-tailscale-hostpath
+  volumeName: easy-swu-tailscale
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: easy-swu-minio-backups
+  labels:
+    app.kubernetes.io/name: easy-swu-minio-backups
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: easy-swu-minio-backups-hostpath
+  hostPath:
+    path: /srv/k3s-backups/easy-swu-minio
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: easy-swu-minio-backups
+  namespace: easy-swu
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: easy-swu-minio-backups-hostpath
+  volumeName: easy-swu-minio-backups
