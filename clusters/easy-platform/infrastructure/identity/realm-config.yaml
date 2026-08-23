@@ -207,6 +207,40 @@ data:
               }
             }
           ]
+        },
+        {
+          "clientId": "easy-swu-admin",
+          "name": "Easy SWU Admin",
+          "enabled": true,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${EASY_SWU_ADMIN_OIDC_CLIENT_SECRET}",
+          "publicClient": false,
+          "bearerOnly": false,
+          "consentRequired": false,
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": false,
+          "frontchannelLogout": true,
+          "redirectUris": [
+            "https://easy-admin.lazycampus.com/api/v1/admin/oidc/callback"
+          ],
+          "webOrigins": [
+            "https://easy-admin.lazycampus.com"
+          ],
+          "attributes": {
+            "pkce.code.challenge.method": "S256",
+            "post.logout.redirect.uris": "https://easy-admin.lazycampus.com/"
+          },
+          "defaultClientScopes": [
+            "web-origins",
+            "acr",
+            "profile",
+            "roles",
+            "basic",
+            "email"
+          ],
+          "optionalClientScopes": []
         }
       ],
       "identityProviders": [
@@ -314,9 +348,12 @@ data:
           "credentials": [
             {
               "type": "password",
-              "value": "${HEADLAMP_ADMIN_PASSWORD}",
+              "value": "${YSTEMSRX_PASSWORD}",
               "temporary": false
             }
+          ],
+          "realmRoles": [
+            "platform-admin"
           ],
           "groups": [
             "/headlamp-viewers"
@@ -474,4 +511,38 @@ data:
         "userinfo.token.claim": "true",
         "introspection.token.claim": "true"
       }
+    }
+  easy-swu-admin-client.json: |
+    {
+      "clientId": "easy-swu-admin",
+      "name": "Easy SWU Admin",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "https://easy-admin.lazycampus.com/api/v1/admin/oidc/callback"
+      ],
+      "webOrigins": [
+        "https://easy-admin.lazycampus.com"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://easy-admin.lazycampus.com/"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": []
     }

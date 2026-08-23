@@ -249,6 +249,38 @@ spec:
                     --target-realm lazycampus \
                     --set "secret=${HEADLAMP_OIDC_CLIENT_SECRET}"
 
+                  easy_swu_admin_client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --query clientId=easy-swu-admin \
+                    --fields id \
+                    --format csv \
+                    --noquotes | tail -n 1)"
+                  if [[ -z "${easy_swu_admin_client_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create clients \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/easy-swu-admin-client.json >/dev/null
+                    easy_swu_admin_client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --query clientId=easy-swu-admin \
+                      --fields id \
+                      --format csv \
+                      --noquotes | tail -n 1)"
+                  else
+                    /opt/keycloak/bin/kcadm.sh update "clients/${easy_swu_admin_client_id}" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/easy-swu-admin-client.json \
+                      --merge
+                  fi
+                  test -n "${easy_swu_admin_client_id}"
+                  /opt/keycloak/bin/kcadm.sh update "clients/${easy_swu_admin_client_id}" \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --set "secret=${EASY_SWU_ADMIN_OIDC_CLIENT_SECRET}"
+
                   headlamp_admin_id="$(/opt/keycloak/bin/kcadm.sh get users \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
@@ -271,7 +303,12 @@ spec:
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
                     --username ystemsrx \
-                    --new-password "${HEADLAMP_ADMIN_PASSWORD}"
+                    --new-password "${YSTEMSRX_PASSWORD}"
+                  /opt/keycloak/bin/kcadm.sh add-roles \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --uusername ystemsrx \
+                    --rolename platform-admin
 
                   groups_mapper_id="$(/opt/keycloak/bin/kcadm.sh get \
                     "clients/${headlamp_client_id}/protocol-mappers/models" \
@@ -378,6 +415,8 @@ spec:
                     path: headlamp-client.json
                   - key: headlamp-groups-mapper.json
                     path: headlamp-groups-mapper.json
+                  - key: easy-swu-admin-client.json
+                    path: easy-swu-admin-client.json
             - name: tmp
               emptyDir:
                 sizeLimit: 32Mi

@@ -27,8 +27,7 @@ generate_hex_file() {
 required_files=(
   "${SECRET_DIR}/tcr-username"
   "${SECRET_DIR}/tcr-password"
-  "${SECRET_DIR}/easy-swu-admin-username"
-  "${SECRET_DIR}/easy-swu-admin-password"
+  "${SECRET_DIR}/easy-swu-admin-oidc-client-secret"
   "${SECRET_DIR}/easy-swu-baidu-map-ak"
   "${SECRET_DIR}/easy-swu-baidu-map-sk"
   "${SECRET_DIR}/easy-swu-tailscale-auth-key"
@@ -114,8 +113,7 @@ def read(name: str) -> str:
 
 runtime_values = {
     "JWT_SECRET": read("easy-swu-jwt-secret"),
-    "ADMIN_USERNAME": read("easy-swu-admin-username"),
-    "ADMIN_PASSWORD": read("easy-swu-admin-password"),
+    "ADMIN_OIDC_CLIENT_SECRET": read("easy-swu-admin-oidc-client-secret"),
     "BAIDU_MAP_AK": read("easy-swu-baidu-map-ak"),
     "BAIDU_MAP_SK": read("easy-swu-baidu-map-sk"),
     "MINIO_ACCESS_KEY": read("easy-swu-minio-access-key"),
