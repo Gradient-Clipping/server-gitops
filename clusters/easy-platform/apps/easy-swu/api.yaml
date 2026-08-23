@@ -45,6 +45,18 @@ spec:
               value: info
             - name: API_DOCS_ENABLED
               value: "false"
+            - name: ADMIN_OIDC_ISSUER
+              value: https://auth.lazycampus.com/realms/lazycampus
+            - name: ADMIN_OIDC_CLIENT_ID
+              value: easy-swu-admin
+            - name: ADMIN_OIDC_REDIRECT_URI
+              value: https://easy-admin.lazycampus.com/api/v1/admin/oidc/callback
+            - name: ADMIN_OIDC_POST_LOGOUT_REDIRECT_URI
+              value: https://easy-admin.lazycampus.com/
+            - name: ADMIN_OIDC_USERNAME
+              value: ystemsrx
+            - name: ADMIN_OIDC_REQUIRED_ROLE
+              value: platform-admin
             - name: MYSQL_CONNECTION_LIMIT
               value: "10"
             - name: REDIS_URL

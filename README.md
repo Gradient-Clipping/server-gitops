@@ -148,9 +148,10 @@ to Identity Bridge through its outbox.
 
 ## Easy SWU
 
-Before the first Easy SWU reconciliation, place its existing administrator,
-Baidu Maps, and Tailscale values in the root-only files documented by
-`scripts/bootstrap-easy-swu-secrets.sh`, then install and run the idempotent
+Before the first Easy SWU reconciliation, run the identity bootstrap so the
+`easy-swu-admin` OIDC client exists, then place the Baidu Maps and Tailscale
+values in the root-only files documented by
+`scripts/bootstrap-easy-swu-secrets.sh`. Install and run the idempotent
 bootstrap:
 
 ```sh
@@ -163,6 +164,9 @@ The bootstrap creates the `easy_swu` database and least-privilege account,
 generates new API and MinIO secrets, restores TCR pull access, prepares retained
 host directories, and creates the runtime Secrets without printing their
 values. The API performs its own ordered migrations before serving traffic.
+The management UI has no application-local login. It redirects to Keycloak and
+the API accepts only the `ystemsrx` OIDC identity with the `platform-admin`
+realm role.
 
 The Tailscale sidecar uses userspace networking and exposes only a loopback HTTP
 proxy to the API container. Its state survives Pod recreation under
@@ -204,8 +208,8 @@ The following Kubernetes secrets are intentionally created out of band and are n
 - `mysql-system/mysql-credentials`: fixed root and backup-user passwords used
   by MySQL initialization and daily backups.
 - `easy-swu/mysql-easy-swu`: the dedicated shared-MySQL connection values.
-- `easy-swu/easy-swu-runtime`: API, administrator, MinIO, Baidu Maps, and
-  Identity Bridge synchronization values.
+- `easy-swu/easy-swu-runtime`: API, OIDC client, MinIO, Baidu Maps, and Identity
+  Bridge synchronization values.
 - `easy-swu/easy-swu-tailscale`: the Tailscale enrollment key used only by the
   campus-network sidecar.
 

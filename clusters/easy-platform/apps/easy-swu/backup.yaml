@@ -35,7 +35,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: backup
-              image: ccr.ccs.tencentyun.com/lazycampus/minio:RELEASE.2025-09-07T16-13-09Z@sha256:52dfd5c0bbd38d3219f2058c7af216d9f9aa27a994b7b5baad09bbd38866015ff
+              image: ccr.ccs.tencentyun.com/lazycampus/minio:RELEASE.2025-09-07T16-13-09Z@sha256:52dfd5c0bbd38d3219f2058c7af216d9f9a27a994b7b5baad09bbd38866015ff
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/sh

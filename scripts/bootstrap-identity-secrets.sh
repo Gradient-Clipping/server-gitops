@@ -38,7 +38,7 @@ write_fixed_file() {
 require_file "${SECRET_DIR}/tcr-username"
 require_file "${SECRET_DIR}/tcr-password"
 require_file "${SECRET_DIR}/smart-shop.env"
-require_file "${SECRET_DIR}/headlamp-admin-password"
+require_file "${SECRET_DIR}/keycloak-ystemsrx-password"
 
 write_fixed_file "${SECRET_DIR}/keycloak-bootstrap-admin-username" "platform-bootstrap-admin"
 write_fixed_file "${SECRET_DIR}/keycloak-platform-admin-username" "platform-admin"
@@ -47,6 +47,7 @@ generate_hex_file "${SECRET_DIR}/keycloak-platform-admin-password" 24
 generate_hex_file "${SECRET_DIR}/identity-bridge-oidc-client-secret" 32
 generate_hex_file "${SECRET_DIR}/smart-shop-oidc-client-secret" 32
 generate_hex_file "${SECRET_DIR}/headlamp-oidc-client-secret" 32
+generate_hex_file "${SECRET_DIR}/easy-swu-admin-oidc-client-secret" 32
 generate_hex_file "${SECRET_DIR}/smart-shop-login-api-token" 32
 generate_hex_file "${SECRET_DIR}/easy-swu-identity-sync-token" 32
 generate_hex_file "${SECRET_DIR}/identity-bridge-cookie-key-current" 32
@@ -162,7 +163,8 @@ keycloak_values = {
     "BRIDGE_OIDC_CLIENT_SECRET": read("identity-bridge-oidc-client-secret"),
     "SMART_SHOP_OIDC_CLIENT_SECRET": read("smart-shop-oidc-client-secret"),
     "HEADLAMP_OIDC_CLIENT_SECRET": read("headlamp-oidc-client-secret"),
-    "HEADLAMP_ADMIN_PASSWORD": read("headlamp-admin-password"),
+    "EASY_SWU_ADMIN_OIDC_CLIENT_SECRET": read("easy-swu-admin-oidc-client-secret"),
+    "YSTEMSRX_PASSWORD": read("keycloak-ystemsrx-password"),
     "PLATFORM_ADMIN_USERNAME": read("keycloak-platform-admin-username"),
     "PLATFORM_ADMIN_PASSWORD": read("keycloak-platform-admin-password"),
 }
