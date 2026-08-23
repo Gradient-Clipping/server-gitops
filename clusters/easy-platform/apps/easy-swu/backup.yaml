@@ -57,7 +57,19 @@ spec:
                   done
                   mkdir -p "${destination}/easy-swu-media"
                   mc mirror --overwrite source/easy-swu-media "${destination}/easy-swu-media"
-                  find "${backup_root}" -mindepth 1 -maxdepth 1 -type d -mtime +13 -exec rm -rf -- {} +
+                  now="$(date -u +%s)"
+                  for candidate in "${backup_root}"/20??????T??????Z; do
+                    [ -d "${candidate}" ] || continue
+                    case "${candidate}" in
+                      /backup/20??????T??????Z) ;;
+                      *) echo "Refusing to remove unexpected backup path: ${candidate}" >&2; exit 1 ;;
+                    esac
+                    modified_at="$(stat -c %Y -- "${candidate}")"
+                    age_seconds=$((now - modified_at))
+                    if [ "${age_seconds}" -gt 1209600 ]; then
+                      rm -rf -- "${candidate}"
+                    fi
+                  done
               env:
                 - name: HOME
                   value: /tmp
