@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: easy-swu-admin
+  namespace: easy-swu
+  labels:
+    app.kubernetes.io/name: easy-swu-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-admin
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: easy-swu-admin
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: admin
+          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-admin:1.0.1 # {"$imagepolicy": "flux-system:easy-swu-admin"}
+          imagePullPolicy: IfNotPresent
+          command:
+            - nginx
+          args:
+            - -g
+            - daemon off;
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: cache
+          emptyDir:
+            sizeLimit: 32Mi
+        - name: run
+          emptyDir:
+            sizeLimit: 8Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: easy-swu-admin
+  namespace: easy-swu
+spec:
+  selector:
+    app.kubernetes.io/name: easy-swu-admin
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
