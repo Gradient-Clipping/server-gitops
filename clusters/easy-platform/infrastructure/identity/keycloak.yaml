@@ -281,6 +281,28 @@ spec:
                     --target-realm lazycampus \
                     --set "secret=${EASY_SWU_ADMIN_OIDC_CLIENT_SECRET}"
 
+                  easy_swu_admin_roles_mapper_id="$(/opt/keycloak/bin/kcadm.sh get \
+                    "clients/${easy_swu_admin_client_id}/protocol-mappers/models" \
+                    --config /tmp/kcadm.config \
+                    --target-realm lazycampus \
+                    --fields id,name \
+                    --format csv \
+                    --noquotes | sed -n 's/^\([^,]*\),easy-swu-admin-realm-roles$/\1/p' | sed -n '1p')"
+                  if [[ -z "${easy_swu_admin_roles_mapper_id}" ]]; then
+                    /opt/keycloak/bin/kcadm.sh create \
+                      "clients/${easy_swu_admin_client_id}/protocol-mappers/models" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/easy-swu-admin-realm-roles-mapper.json >/dev/null
+                  else
+                    /opt/keycloak/bin/kcadm.sh update \
+                      "clients/${easy_swu_admin_client_id}/protocol-mappers/models/${easy_swu_admin_roles_mapper_id}" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --file /config/easy-swu-admin-realm-roles-mapper.json \
+                      --set "id=${easy_swu_admin_roles_mapper_id}"
+                  fi
+
                   headlamp_admin_id="$(/opt/keycloak/bin/kcadm.sh get users \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
@@ -417,6 +439,8 @@ spec:
                     path: headlamp-groups-mapper.json
                   - key: easy-swu-admin-client.json
                     path: easy-swu-admin-client.json
+                  - key: easy-swu-admin-realm-roles-mapper.json
+                    path: easy-swu-admin-realm-roles-mapper.json
             - name: tmp
               emptyDir:
                 sizeLimit: 32Mi
