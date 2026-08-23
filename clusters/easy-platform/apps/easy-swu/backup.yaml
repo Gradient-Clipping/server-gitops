@@ -46,8 +46,16 @@ spec:
                   test "${backup_root}" = /backup
                   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
                   destination="${backup_root}/${stamp}"
+                  attempt=1
+                  until mc alias set source http://easy-swu-minio:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}" >/dev/null 2>&1; do
+                    if [ "${attempt}" -ge 30 ]; then
+                      echo "MinIO did not become reachable within 60 seconds" >&2
+                      exit 1
+                    fi
+                    attempt=$((attempt + 1))
+                    sleep 2
+                  done
                   mkdir -p "${destination}/easy-swu-media"
-                  mc alias set source http://easy-swu-minio:9000 "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}"
                   mc mirror --overwrite source/easy-swu-media "${destination}/easy-swu-media"
                   find "${backup_root}" -mindepth 1 -maxdepth 1 -type d -mtime +13 -exec rm -rf -- {} +
               env:
