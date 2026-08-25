@@ -45,7 +45,7 @@ data:
       "otpPolicyLookAheadWindow": 1,
       "otpPolicyPeriod": 30,
       "eventsEnabled": true,
-      "eventsExpiration": 2592000,
+      "eventsExpiration": 5184000,
       "eventsListeners": ["jboss-logging"],
       "adminEventsEnabled": true,
       "adminEventsDetailsEnabled": true,

@@ -131,3 +131,23 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: identity-data-retention-access
+  namespace: identity-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: data-retention
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mysql-system
+      ports:
+        - port: 3306
+          protocol: TCP

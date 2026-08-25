@@ -64,7 +64,7 @@ spec:
                     --no-tablespaces \
                     --set-gtid-purged=OFF >"${partial}"
                   mv "${partial}" "${target}"
-                  find /backups -type f -name 'all-databases-*.sql' -mtime +14 -delete
+                  find /backups -type f -name 'all-databases-*.sql' -mmin +7200 -delete
               resources:
                 requests:
                   cpu: 20m

@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/name: smart-shop
 spec:
   capacity:
-    storage: 20Gi
+    storage: 10Gi
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
@@ -33,7 +33,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
+      storage: 10Gi
   storageClassName: smart-shop-hostpath
   volumeName: smart-shop-data
 ---

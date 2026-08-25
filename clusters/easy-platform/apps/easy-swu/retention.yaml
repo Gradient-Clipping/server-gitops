@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: easy-swu-audit-retention
+  namespace: easy-swu
+  labels:
+    app.kubernetes.io/name: easy-swu-audit-retention
+    app.kubernetes.io/component: data-retention
+spec:
+  schedule: "42 2 * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: easy-swu-audit-retention
+            app.kubernetes.io/component: data-retention
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: tcr-auth
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cleanup
+              image: ccr.ccs.tencentyun.com/lazycampus/mysql:8.4.11@sha256:d0ecae406d2e315d9e025055802b4570e471b5ca3f25bc90d696930755b11742
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: mysql-easy-swu
+              env:
+                - name: MYSQL_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-easy-swu
+                      key: MYSQL_PASSWORD
+              command:
+                - /bin/bash
+                - -ec
+              args:
+                - |
+                  total=0
+                  while true; do
+                    deleted="$(mysql \
+                      --host="${MYSQL_HOST}" \
+                      --port="${MYSQL_PORT}" \
+                      --user="${MYSQL_USER}" \
+                      --database="${MYSQL_DATABASE}" \
+                      --batch \
+                      --skip-column-names \
+                      --execute='DELETE FROM admin_audit_logs WHERE created_at < DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 60 DAY) LIMIT 5000; SELECT ROW_COUNT();')"
+                    case "${deleted}" in
+                      ''|*[!0-9]*)
+                        echo "Unexpected delete count: ${deleted}" >&2
+                        exit 1
+                        ;;
+                    esac
+                    total=$((total + deleted))
+                    [ "${deleted}" -gt 0 ] || break
+                  done
+                  echo "Deleted ${total} expired Easy SWU audit events"
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi

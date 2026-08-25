@@ -1,0 +1,212 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: identity-bridge-audit-retention
+  namespace: identity-system
+  labels:
+    app.kubernetes.io/name: identity-bridge-audit-retention
+    app.kubernetes.io/component: data-retention
+spec:
+  schedule: "32 2 * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: identity-bridge-audit-retention
+            app.kubernetes.io/component: data-retention
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: tcr-auth
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cleanup
+              image: ccr.ccs.tencentyun.com/lazycampus/mysql:8.4.11@sha256:d0ecae406d2e315d9e025055802b4570e471b5ca3f25bc90d696930755b11742
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - secretRef:
+                    name: mysql-identity-bridge
+              env:
+                - name: MYSQL_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-identity-bridge
+                      key: MYSQL_PASSWORD
+              command:
+                - /bin/bash
+                - -ec
+              args:
+                - |
+                  total=0
+                  while true; do
+                    deleted="$(mysql \
+                      --host="${MYSQL_HOST}" \
+                      --port="${MYSQL_PORT}" \
+                      --user="${MYSQL_USER}" \
+                      --database="${MYSQL_DATABASE}" \
+                      --batch \
+                      --skip-column-names \
+                      --execute='DELETE FROM identity_audit_events WHERE created_at < DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 60 DAY) LIMIT 5000; SELECT ROW_COUNT();')"
+                    case "${deleted}" in
+                      ''|*[!0-9]*)
+                        echo "Unexpected delete count: ${deleted}" >&2
+                        exit 1
+                        ;;
+                    esac
+                    total=$((total + deleted))
+                    [ "${deleted}" -gt 0 ] || break
+                  done
+                  echo "Deleted ${total} expired Identity Bridge audit events"
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keycloak-event-retention
+  namespace: identity-system
+  labels:
+    app.kubernetes.io/name: keycloak-event-retention
+    app.kubernetes.io/component: data-retention
+spec:
+  schedule: "37 2 * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: keycloak-event-retention
+            app.kubernetes.io/component: data-retention
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: tcr-auth
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 999
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: cleanup
+              image: ccr.ccs.tencentyun.com/lazycampus/mysql:8.4.11@sha256:d0ecae406d2e315d9e025055802b4570e471b5ca3f25bc90d696930755b11742
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: MYSQL_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-keycloak
+                      key: MYSQL_HOST
+                - name: MYSQL_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-keycloak
+                      key: MYSQL_PORT
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-keycloak
+                      key: MYSQL_DATABASE
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-keycloak
+                      key: MYSQL_USER
+                - name: MYSQL_PWD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mysql-keycloak
+                      key: MYSQL_PASSWORD
+              command:
+                - /bin/bash
+                - -ec
+              args:
+                - |
+                  cleanup_table() {
+                    table="${1}"
+                    time_column="${2}"
+                    total=0
+                    while true; do
+                      deleted="$(mysql \
+                        --host="${MYSQL_HOST}" \
+                        --port="${MYSQL_PORT}" \
+                        --user="${MYSQL_USER}" \
+                        --database="${MYSQL_DATABASE}" \
+                        --batch \
+                        --skip-column-names \
+                        --execute="DELETE FROM ${table} WHERE ${time_column} < UNIX_TIMESTAMP(DATE_SUB(UTC_TIMESTAMP(), INTERVAL 60 DAY)) * 1000 LIMIT 5000; SELECT ROW_COUNT();")"
+                      case "${deleted}" in
+                        ''|*[!0-9]*)
+                          echo "Unexpected delete count for ${table}: ${deleted}" >&2
+                          exit 1
+                          ;;
+                      esac
+                      total=$((total + deleted))
+                      [ "${deleted}" -gt 0 ] || break
+                    done
+                    echo "Deleted ${total} expired rows from ${table}"
+                  }
+                  cleanup_table EVENT_ENTITY EVENT_TIME
+                  cleanup_table ADMIN_EVENT_ENTITY ADMIN_EVENT_TIME
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: tmp
+              emptyDir:
+                sizeLimit: 64Mi

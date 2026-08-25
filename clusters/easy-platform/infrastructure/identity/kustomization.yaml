@@ -6,5 +6,6 @@ resources:
   - keycloak.yaml
   - identity-bridge.yaml
   - ingress.yaml
+  - retention.yaml
   - network-policy.yaml
   - image-automation.yaml

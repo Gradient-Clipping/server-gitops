@@ -202,7 +202,11 @@ spec:
                     --set 'ssoSessionIdleTimeoutRememberMe=2592000' \
                     --set 'ssoSessionMaxLifespanRememberMe=7776000' \
                     --set 'clientSessionIdleTimeout=0' \
-                    --set 'clientSessionMaxLifespan=0'
+                    --set 'clientSessionMaxLifespan=0' \
+                    --set 'eventsEnabled=true' \
+                    --set 'eventsExpiration=5184000' \
+                    --set 'adminEventsEnabled=true' \
+                    --set 'adminEventsDetailsEnabled=true'
                   client_id="$(/opt/keycloak/bin/kcadm.sh get clients \
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \

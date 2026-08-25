@@ -9,5 +9,6 @@ resources:
   - admin.yaml
   - ingress.yaml
   - backup.yaml
+  - retention.yaml
   - network-policy.yaml
   - image-automation.yaml
