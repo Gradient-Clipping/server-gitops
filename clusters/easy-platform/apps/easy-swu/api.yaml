@@ -45,6 +45,10 @@ spec:
               value: info
             - name: API_DOCS_ENABLED
               value: "false"
+            # API NetworkPolicy admits the ingress namespace and admin pods.
+            # The host Nginx replaces untrusted X-Forwarded-For chains.
+            - name: TRUST_PROXY_CIDRS
+              value: "127.0.0.1/32,10.6.0.3/32,10.42.0.0/16"
             - name: ADMIN_OIDC_ISSUER
               value: https://auth.lazycampus.com/realms/lazycampus
             - name: ADMIN_OIDC_CLIENT_ID

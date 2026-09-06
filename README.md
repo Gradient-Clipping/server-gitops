@@ -13,6 +13,16 @@ This private repository is the desired state for the single-node `easy-platform-
 The original `platform-smoke` workload was removed after the first production
 workloads exercised the same image automation path.
 
+Easy SWU uses explicit `TRUST_PROXY_CIDRS` in its API Deployment. Deploy the API
+change together with `host/nginx/easy-swu`, which replaces caller-supplied
+`X-Forwarded-For` chains. The ingress NetworkPolicy remains part of this trust
+boundary. Apply host Nginx files through the host configuration workflow; Flux
+does not install them. With EdgeOne and no verified real-IP configuration,
+limits apply to the edge node IP. Restore client IPs only after installing and
+maintaining verified EdgeOne source CIDRs and checking that EdgeOne overwrites
+the chosen client-IP header. Never enable blanket proxy trust or trust the
+leftmost caller-supplied address.
+
 ## Repository map
 
 - `infrastructure/ingress`: the bundled K3s Traefik chart, exposed only on the
