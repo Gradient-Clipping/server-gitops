@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: admin
-          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-admin:1.0.19 # {"$imagepolicy": "flux-system:easy-swu-admin"}
+          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-admin:1.0.20 # {"$imagepolicy": "flux-system:easy-swu-admin"}
           imagePullPolicy: IfNotPresent
           command:
             - nginx
