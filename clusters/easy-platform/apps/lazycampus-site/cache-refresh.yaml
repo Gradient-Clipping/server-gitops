@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: homepage-cache-refresh-20260908
+  name: homepage-cache-refresh-20260908-v2
   namespace: domain-system
 spec:
   backoffLimit: 0
@@ -42,12 +42,15 @@ spec:
 
               hosts = ("lazycampus.com", "www.lazycampus.com")
               targets = [f"{scheme}://{host}{path}" for scheme in ("http", "https") for host in hosts for path in ("/", "/index.html")]
-              client = TencentCloudClient(os.environ["TENCENTCLOUD_SECRET_ID"], os.environ["TENCENTCLOUD_SECRET_KEY"])
-              result = client.call("teo", "CreatePurgeTask", {
-                  "ZoneId": "zone-3solmvkeru39",
-                  "Type": "purge_url",
-                  "Targets": targets,
-              })
+              client = TencentCloudClient(os.environ["TENCENTCLOUD_SECRET_ID"].strip(), os.environ["TENCENTCLOUD_SECRET_KEY"].strip())
+              try:
+                  result = client.call("teo", "CreatePurgeTask", {
+                      "ZoneId": "zone-3solmvkeru39",
+                      "Type": "purge_url",
+                      "Targets": targets,
+                  })
+              except Exception as error:
+                  raise SystemExit(f"Cache refresh failed: {type(error).__name__}") from None
               if result.get("FailedList") or not result.get("JobId"):
                   raise RuntimeError("EdgeOne did not accept every homepage cache target.")
               print(json.dumps({"jobId": result["JobId"], "targets": targets}), flush=True)
