@@ -4,7 +4,7 @@ metadata:
   name: lazycampus-site
   namespace: flux-system
 spec:
-  image: ccr.ccs.tencentyun.com/lazycampus/lazycampus-site
+  image: ccr.ccs.tencentyun.com/lazycampus/lazycampus-homepage
   interval: 1m0s
   secretRef:
     name: tcr-auth
@@ -30,6 +30,8 @@ metadata:
   name: lazycampus-site
   namespace: flux-system
 spec:
+  # Resume after the policy has observed the new repository's first release.
+  suspend: true
   git:
     checkout:
       ref:
@@ -38,7 +40,7 @@ spec:
       author:
         email: flux@lazycampus.com
         name: Flux Image Automation
-      messageTemplate: "chore(images): update lazycampus-site"
+      messageTemplate: "chore(images): update lazycampus-homepage"
     push:
       branch: main
   interval: 1m0s

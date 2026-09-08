@@ -42,7 +42,13 @@ administration interface; publishing payment support does not change that settin
   automation for `auth.lazycampus.com`.
 - `infrastructure/domain-automation`: an opt-in controller that reconciles
   Ingress hosts into Tencent EdgeOne and Cloudflare DNS.
-- `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`.
+- `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`, built from
+  `Gradient-Clipping/lazycampus-homepage/main` and published as
+  `ccr.ccs.tencentyun.com/lazycampus/lazycampus-homepage:1.0.<run-number>`.
+  The existing namespace, workload, routing and image automation resource names
+  remain `lazycampus-site`. The legacy `Gradient-Clipping/lazycampus-site`
+  source repository is retained and only runs verification; it no longer
+  publishes production images.
 - `apps/bbbto-mnp`: `bbbto.com` and `www.bbbto.com`, including a retained
   SQLite persistent volume.
 - `apps/smart-shop`: `shop.lazycampus.com` and
