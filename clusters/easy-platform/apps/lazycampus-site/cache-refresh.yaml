@@ -1,0 +1,93 @@
+# One-time migration: retire the legacy HTML already stored at EdgeOne.
+# Remove from active reconciliation after completion; retain the manifest for audit.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: homepage-cache-refresh-20260908
+  namespace: domain-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 180
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homepage-cache-refresh
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: refresh
+          image: ccr.ccs.tencentyun.com/lazycampus/domain-reconciler:1.0.3
+          command: [python, -c]
+          args:
+            - |
+              import json
+              import os
+              import time
+              import urllib.request
+              from domain_reconciler.reconciler import TencentCloudClient
+
+              expected = "index-CQX4zw0p.js"
+              with urllib.request.urlopen("http://lazycampus-site.lazycampus-site.svc.cluster.local/", timeout=15) as response:
+                  if expected not in response.read().decode("utf-8"):
+                      raise RuntimeError("The new homepage must be ready at the origin before cache refresh.")
+
+              hosts = ("lazycampus.com", "www.lazycampus.com")
+              targets = [f"{scheme}://{host}{path}" for scheme in ("http", "https") for host in hosts for path in ("/", "/index.html")]
+              client = TencentCloudClient(os.environ["TENCENTCLOUD_SECRET_ID"], os.environ["TENCENTCLOUD_SECRET_KEY"])
+              result = client.call("teo", "CreatePurgeTask", {
+                  "ZoneId": "zone-3solmvkeru39",
+                  "Type": "purge_url",
+                  "Targets": targets,
+              })
+              if result.get("FailedList") or not result.get("JobId"):
+                  raise RuntimeError("EdgeOne did not accept every homepage cache target.")
+              print(json.dumps({"jobId": result["JobId"], "targets": targets}), flush=True)
+
+              pending = {f"https://{host}/" for host in hosts}
+              deadline = time.monotonic() + 100
+              while pending and time.monotonic() < deadline:
+                  for url in tuple(pending):
+                      try:
+                          with urllib.request.urlopen(url, timeout=10) as response:
+                              fresh = expected in response.read().decode("utf-8") and "no-cache" in response.headers.get("Cache-Control", "")
+                          if fresh:
+                              pending.remove(url)
+                              print(json.dumps({"verified": url, "asset": expected}), flush=True)
+                      except Exception as error:
+                          print(json.dumps({"retry": url, "errorType": type(error).__name__}), flush=True)
+                  if pending:
+                      time.sleep(3)
+              if pending:
+                  raise RuntimeError("Homepage cache propagation did not finish before the deadline.")
+          env:
+            - name: TENCENTCLOUD_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: tencentcloud-credentials
+                  key: secret-id
+            - name: TENCENTCLOUD_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tencentcloud-credentials
+                  key: secret-key
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
