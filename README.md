@@ -49,6 +49,9 @@ administration interface; publishing payment support does not change that settin
   remain `lazycampus-site`. The legacy `Gradient-Clipping/lazycampus-site`
   source repository is retained and only runs verification; it no longer
   publishes production images.
+  The one-time EdgeOne cache operation is recorded outside active reconciliation
+  in `operations/homepage-cache-refresh-20260908/`; its request was denied by
+  the existing restricted CAM policy and requires separate cache verification.
 - `apps/bbbto-mnp`: `bbbto.com` and `www.bbbto.com`, including a retained
   SQLite persistent volume.
 - `apps/smart-shop`: `shop.lazycampus.com` and

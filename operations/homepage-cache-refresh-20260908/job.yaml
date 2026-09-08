@@ -1,5 +1,5 @@
-# One-time migration: retire the legacy HTML already stored at EdgeOne.
-# Remove from active reconciliation after completion; retain the manifest for audit.
+# Historical, inactive operation: the existing CAM policy denied this request.
+# See README.md in this directory before considering another attempt.
 apiVersion: batch/v1
 kind: Job
 metadata:

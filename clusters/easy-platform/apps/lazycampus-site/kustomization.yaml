@@ -6,4 +6,3 @@ resources:
   - service.yaml
   - ingress.yaml
   - image-automation.yaml
-  - cache-refresh.yaml
