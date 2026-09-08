@@ -30,8 +30,6 @@ metadata:
   name: lazycampus-site
   namespace: flux-system
 spec:
-  # Resume after the policy has observed the new repository's first release.
-  suspend: true
   git:
     checkout:
       ref:
