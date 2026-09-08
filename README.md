@@ -45,6 +45,9 @@ origin credential matches a root-only include under
 `/etc/nginx/private/easy-swu-origin-keys/` and the supplied IP parses correctly.
 EdgeOne sets the credential header; Nginx removes it before proxying upstream.
 Missing or invalid credentials fall back to the direct peer address.
+See [Easy SWU origin IP](docs/easy-swu-origin-ip.md) for the EdgeOne Free setup,
+deployment, and regression checks. Never enable blanket proxy trust or trust
+the leftmost caller-supplied address.
 
 The six existing Flux controller Deployments are managed in
 `infrastructure/flux-controllers` with their current pinned versions and resource
