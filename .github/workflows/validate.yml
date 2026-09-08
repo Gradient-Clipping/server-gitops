@@ -48,6 +48,12 @@ jobs:
           for script in scripts/*.sh; do bash -n "$script"; done
           python -m py_compile scripts/*.py
 
+      - name: Test Nginx origin IP forwarding
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes nginx
+          python -m unittest discover -s tests -v
+
       - name: Match the Ubuntu 22.04 host Python
         uses: actions/setup-python@v6
         with:
