@@ -25,6 +25,14 @@ leftmost caller-supplied address.
 
 ## Repository map
 
+Easy SWU's API loads WeChat Pay configuration from the `easy-swu-wechat-pay`
+Secret and mounts `easy-swu-wechat-pay-pem` read-only at
+`/run/secrets/wechatpay`. Create both Secrets before reconciling the API
+Deployment. PEM files use mode `0440` with the Pod's existing `fsGroup`;
+credentials and private keys must never be committed or built into images.
+The application's payment setting remains independently controlled by its
+administration interface; publishing payment support does not change that setting.
+
 - `infrastructure/ingress`: the bundled K3s Traefik chart, exposed only on the
   loopback NodePort `32080` for the host Nginx TLS edge.
 - `infrastructure/mysql`: the cluster-wide MySQL 8.4 LTS service, retained data
