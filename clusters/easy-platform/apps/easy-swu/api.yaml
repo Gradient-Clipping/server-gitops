@@ -96,9 +96,6 @@ spec:
           volumeMounts:
             - name: api-tmp
               mountPath: /tmp
-            - name: wechat-pay-pem
-              mountPath: /run/secrets/wechatpay
-              readOnly: true
           startupProbe:
             httpGet:
               path: /api/v1/system/ready
@@ -188,10 +185,6 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
       volumes:
-        - name: wechat-pay-pem
-          secret:
-            secretName: easy-swu-wechat-pay-pem
-            defaultMode: 0440
         - name: api-tmp
           emptyDir:
             sizeLimit: 512Mi

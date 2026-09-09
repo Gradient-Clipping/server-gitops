@@ -25,11 +25,15 @@ leftmost caller-supplied address.
 
 ## Repository map
 
-Easy SWU's API loads WeChat Pay configuration from the `easy-swu-wechat-pay`
-Secret and mounts `easy-swu-wechat-pay-pem` read-only at
-`/run/secrets/wechatpay`. Create both Secrets before reconciling the API
-Deployment. PEM files use mode `0440` with the Pod's existing `fsGroup`;
-credentials and private keys must never be committed or built into images.
+Easy SWU's API loads mini-program virtual payment configuration from the
+`easy-swu-wechat-pay` Secret. Populate `WECHAT_APP_ID`, `WECHAT_APP_SECRET`,
+`WECHAT_VIRTUAL_PAY_ENABLED`, `WECHAT_VIRTUAL_PAY_OFFER_ID`,
+`WECHAT_VIRTUAL_PAY_ENV=0`, the production/sandbox AppKeys, message Token and
+EncodingAESKey before reconciling the API Deployment. Recovery material is
+stored in the root-only `/etc/platform-secrets/easy-swu/wechat-pay.json`.
+Replace obsolete merchant configuration keys when updating the Secret; the
+`easy-swu-wechat-pay-pem` Secret and certificate mount are no longer used.
+Credentials must never be committed or built into images.
 The application's payment setting remains independently controlled by its
 administration interface; publishing payment support does not change that setting.
 
