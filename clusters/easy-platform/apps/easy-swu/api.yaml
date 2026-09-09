@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-api:1.0.39 # {"$imagepolicy": "flux-system:easy-swu-api"}
+          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-api:1.0.41 # {"$imagepolicy": "flux-system:easy-swu-api"}
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
@@ -96,9 +96,6 @@ spec:
           volumeMounts:
             - name: api-tmp
               mountPath: /tmp
-            - name: wechat-pay-pem
-              mountPath: /run/secrets/wechatpay
-              readOnly: true
           startupProbe:
             httpGet:
               path: /api/v1/system/ready
@@ -188,10 +185,6 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
       volumes:
-        - name: wechat-pay-pem
-          secret:
-            secretName: easy-swu-wechat-pay-pem
-            defaultMode: 0440
         - name: api-tmp
           emptyDir:
             sizeLimit: 512Mi
