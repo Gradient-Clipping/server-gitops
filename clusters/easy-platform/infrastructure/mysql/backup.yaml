@@ -11,8 +11,7 @@ spec:
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600
   successfulJobsHistoryLimit: 3
-  # Clear the known failed backup history during this repair; restore after verification.
-  failedJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       backoffLimit: 2

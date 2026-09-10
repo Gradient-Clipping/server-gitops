@@ -7,5 +7,4 @@ resources:
   - service.yaml
   - statefulset.yaml
   - backup.yaml
-  - backup-verification.yaml
   - network-policy.yaml
