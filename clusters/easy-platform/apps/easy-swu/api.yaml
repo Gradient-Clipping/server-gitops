@@ -37,6 +37,11 @@ spec:
             - secretRef:
                 name: easy-swu-wechat-pay
           env:
+            - name: OPEN_PLATFORM_SERVICE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: easy-swu-open-platform
+                  key: OPEN_PLATFORM_SERVICE_SECRET
             - name: NODE_ENV
               value: production
             - name: HOST
