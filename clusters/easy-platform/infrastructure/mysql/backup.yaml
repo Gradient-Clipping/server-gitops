@@ -11,7 +11,8 @@ spec:
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600
   successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  # Clear the known failed backup history during this repair; restore after verification.
+  failedJobsHistoryLimit: 0
   jobTemplate:
     spec:
       backoffLimit: 2
@@ -64,7 +65,8 @@ spec:
                     --no-tablespaces \
                     --set-gtid-purged=OFF >"${partial}"
                   mv "${partial}" "${target}"
-                  find /backups -type f -name 'all-databases-*.sql' -mmin +7200 -delete
+                  # Dumps live at the volume root; maintenance subdirectories may be root-only.
+                  find /backups -maxdepth 1 -type f -name 'all-databases-*.sql' -mmin +7200 -delete
               resources:
                 requests:
                   cpu: 20m
