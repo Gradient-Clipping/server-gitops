@@ -1,0 +1,335 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-oidc-config
+  namespace: identity-system
+data:
+  client.json: >
+    {
+      "clientId": "lazycampus-platform",
+      "name": "Lazy Campus 开放平台",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "redirectUris": [
+        "https://platform.lazycampus.com/auth/callback"
+      ],
+      "webOrigins": [
+        "https://platform.lazycampus.com"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://platform.lazycampus.com/signed-out",
+        "backchannel.logout.url": "http://platform.open-platform.svc.cluster.local:3000/auth/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "client.session.idle.timeout": "1800",
+        "client.session.max.lifespan": "28800"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "roles",
+        "basic"
+      ],
+      "optionalClientScopes": []
+    }
+  identity_id.json: |
+    {
+      "name": "identity_id",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "consentRequired": false,
+      "config": {
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "jsonType.label": "String",
+        "user.attribute": "identity_id",
+        "claim.name": "identity_id"
+      }
+    }
+  student_number.json: |
+    {
+      "name": "student_number",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-attribute-mapper",
+      "consentRequired": false,
+      "config": {
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "jsonType.label": "String",
+        "user.attribute": "student_number",
+        "claim.name": "student_number"
+      }
+    }
+  realm-roles.json: |
+    {
+      "name": "realm-roles",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+      "consentRequired": false,
+      "config": {
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "jsonType.label": "String",
+        "claim.name": "realm_access.roles",
+        "multivalued": "true"
+      }
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: platform-oidc-bootstrap-v1
+  namespace: identity-system
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: platform-oidc-reconciler
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: reconcile
+          image: ccr.ccs.tencentyun.com/lazycampus/keycloak:26.7.1@sha256:14a382edabb24f92e437911239f8bb344bd7b7612a03949b5b4a45278008a408
+          command:
+            - /bin/bash
+            - -ec
+          args:
+            - >
+
+              set -euo pipefail
+
+              trap 'rm -f /tmp/kcadm.config' EXIT
+
+              /opt/keycloak/bin/kcadm.sh config credentials --config /tmp/kcadm.config --server
+              http://keycloak:8080 --realm master --user "$PLATFORM_ADMIN_USERNAME" --password
+              "$PLATFORM_ADMIN_PASSWORD" >/dev/null 2>&1
+
+              kc() { /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config --target-realm lazycampus; }
+
+              client_id="$(kc get clients -q clientId=lazycampus-platform --fields id --format csv --noquotes
+              | tail -n 1)"
+
+              if [[ -z "$client_id" ]]; then
+                kc create clients --file /config/client.json >/dev/null
+                client_id="$(kc get clients -q clientId=lazycampus-platform --fields id --format csv --noquotes | tail -n 1)"
+              else
+                kc update "clients/$client_id" --file /config/client.json --merge >/dev/null
+              fi
+
+              test -n "$client_id"
+
+              kc update "clients/$client_id" --set "secret=$OIDC_CLIENT_SECRET" >/dev/null
+
+              for name in identity_id student_number realm-roles; do
+                mapper_id="$(kc get "clients/$client_id/protocol-mappers/models" --fields id,name --format csv --noquotes | sed -n "s/^\([^,]*\),$name$/\1/p" | head -n 1)"
+                if [[ -z "$mapper_id" ]]; then
+                  kc create "clients/$client_id/protocol-mappers/models" --file "/config/$name.json" >/dev/null
+                else
+                  kc update "clients/$client_id/protocol-mappers/models/$mapper_id" --file "/config/$name.json" --set "id=$mapper_id" >/dev/null
+                fi
+              done
+
+              echo 'Open platform OIDC client reconciled.'
+          env:
+            - name: PLATFORM_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-runtime
+                  key: PLATFORM_ADMIN_USERNAME
+            - name: PLATFORM_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-runtime
+                  key: PLATFORM_ADMIN_PASSWORD
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: platform-oidc-secret
+                  key: OIDC_CLIENT_SECRET
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: platform-oidc-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: platform-oidc-reconciler
+  namespace: identity-system
+spec:
+  schedule: 23 * * * *
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: platform-oidc-reconciler
+        spec:
+          restartPolicy: OnFailure
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: tcr-auth
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: ccr.ccs.tencentyun.com/lazycampus/keycloak:26.7.1@sha256:14a382edabb24f92e437911239f8bb344bd7b7612a03949b5b4a45278008a408
+              command:
+                - /bin/bash
+                - -ec
+              args:
+                - >
+
+                  set -euo pipefail
+
+                  trap 'rm -f /tmp/kcadm.config' EXIT
+
+                  /opt/keycloak/bin/kcadm.sh config credentials --config /tmp/kcadm.config --server
+                  http://keycloak:8080 --realm master --user "$PLATFORM_ADMIN_USERNAME" --password
+                  "$PLATFORM_ADMIN_PASSWORD" >/dev/null 2>&1
+
+                  kc() { /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config --target-realm lazycampus;
+                  }
+
+                  client_id="$(kc get clients -q clientId=lazycampus-platform --fields id --format csv
+                  --noquotes | tail -n 1)"
+
+                  if [[ -z "$client_id" ]]; then
+                    kc create clients --file /config/client.json >/dev/null
+                    client_id="$(kc get clients -q clientId=lazycampus-platform --fields id --format csv --noquotes | tail -n 1)"
+                  else
+                    kc update "clients/$client_id" --file /config/client.json --merge >/dev/null
+                  fi
+
+                  test -n "$client_id"
+
+                  kc update "clients/$client_id" --set "secret=$OIDC_CLIENT_SECRET" >/dev/null
+
+                  for name in identity_id student_number realm-roles; do
+                    mapper_id="$(kc get "clients/$client_id/protocol-mappers/models" --fields id,name --format csv --noquotes | sed -n "s/^\([^,]*\),$name$/\1/p" | head -n 1)"
+                    if [[ -z "$mapper_id" ]]; then
+                      kc create "clients/$client_id/protocol-mappers/models" --file "/config/$name.json" >/dev/null
+                    else
+                      kc update "clients/$client_id/protocol-mappers/models/$mapper_id" --file "/config/$name.json" --set "id=$mapper_id" >/dev/null
+                    fi
+                  done
+
+                  echo 'Open platform OIDC client reconciled.'
+              env:
+                - name: PLATFORM_ADMIN_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-runtime
+                      key: PLATFORM_ADMIN_USERNAME
+                - name: PLATFORM_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-runtime
+                      key: PLATFORM_ADMIN_PASSWORD
+                - name: OIDC_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: platform-oidc-secret
+                      key: OIDC_CLIENT_SECRET
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 384Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: config
+              configMap:
+                name: platform-oidc-config
+            - name: tmp
+              emptyDir:
+                sizeLimit: 32Mi
+      ttlSecondsAfterFinished: 3600
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: platform-oidc-reconciler
+  namespace: identity-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: platform-oidc-reconciler
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - port: 8080
+          protocol: TCP
