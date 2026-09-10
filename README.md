@@ -288,3 +288,21 @@ KUBECONFIG=/etc/rancher/k3s/k3s.yaml flux install \
 ```
 
 After the initial installation has cached the pinned controller images, run `scripts/bootstrap-flux-controllers-tcr.sh` as root on the server. It mirrors only the node's `linux/amd64` images into TCR, switches all six deployments, and waits for every rollout. This server-side bootstrap avoids the unreliable cross-region upload path from GitHub-hosted runners to TCR.
+
+## Lazy Campus 开放平台
+
+- 源码：`Gradient-Clipping/lazycampus-platform`，发布分支 `main`，镜像 `lazycampus/lazycampus-platform:1.0.<run_number>`。
+- 配置：`clusters/easy-platform/apps/open-platform/`；域名 `platform.lazycampus.com`。
+- 独立命名空间 `open-platform`、MySQL 数据库及账户 `lazycampus_platform`、Redis 数据目录 `/srv/k3s-data/open-platform/redis`。
+- Keycloak 客户端由 `infrastructure/identity/open-platform.yaml` 的初始化 Job 和每小时调谐任务维护。复用已有 `ystemsrx` 管理员；本配置不创建用户或修改管理员密码。
+- 仅学校身份和指定管理员可以登录；客户端使用精确回调地址、PKCE S256、内部后端登出与受控身份属性映射。
+- Easy SWU 通过独立 HMAC 签名处理 `/internal/platform/v1/` 查询。公网 Easy SWU Ingress 仅发布 `/api/v1`，内部查询入口不暴露；共享服务继续使用原有校园缓存及会话。
+
+首次部署顺序：
+
+1. 将已提交的本仓库版本放到 K3s 宿主机，执行 `bash scripts/bootstrap-open-platform.sh --runtime-only`，准备数据库和 Secret。
+2. 合并上述 Kubernetes 配置至 `main`，等待 Flux 创建应用、Keycloak 客户端及自动域名。
+3. 执行同一版本的 `bash scripts/bootstrap-open-platform.sh`，安装平台专用 Nginx 文件及 EdgeOne 规则。
+4. 验证 `https://platform.lazycampus.com/readyz` 中的提交版本，并检查 SSO、应用授权和校园查询。
+
+引导脚本只操作开放平台所需资源，运行密钥保存在 `/etc/platform-secrets/platform-*`。Nginx 仅在回源密钥校验通过后接受 EdgeOne 的客户端 IP，清除转发给应用的回源密钥；EdgeOne 对本域名禁用缓存与离线缓存。规则来源为 `scripts/reconcile-open-platform-edge.py`，默认执行为只读计划，添加 `--apply` 才写入；其余域名规则保持不变。

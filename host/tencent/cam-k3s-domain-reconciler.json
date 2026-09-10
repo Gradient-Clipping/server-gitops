@@ -1,0 +1,23 @@
+{
+  "version": "2.0",
+  "statement": [
+    {
+      "action": [
+        "teo:DescribeAccelerationDomains",
+        "teo:CreateAccelerationDomain",
+        "teo:ModifyAccelerationDomain",
+        "teo:ModifyHostsCertificate",
+        "teo:DescribeL7AccRules",
+        "teo:CreateL7AccRules",
+        "teo:ModifyL7AccRule"
+      ],
+      "condition": {
+        "ip_equal": {
+          "qcs:ip": "1.14.95.189/32"
+        }
+      },
+      "effect": "allow",
+      "resource": "*"
+    }
+  ]
+}

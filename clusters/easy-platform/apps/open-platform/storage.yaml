@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: platform-redis
+  labels:
+    app.kubernetes.io/name: platform-redis
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: platform-redis-hostpath
+  hostPath:
+    path: /srv/k3s-data/open-platform/redis
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: platform-redis
+  namespace: open-platform
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: platform-redis-hostpath
+  volumeName: platform-redis
