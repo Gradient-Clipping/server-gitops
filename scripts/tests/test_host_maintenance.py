@@ -14,6 +14,18 @@ spec.loader.exec_module(maintenance)
 
 
 class MaintenanceTests(unittest.TestCase):
+    def test_chunk_finish_never_signals_unrelated_process(self):
+        with patch.object(Path,'read_bytes',return_value=b'/usr/bin/dpkg\0'),patch.object(maintenance.os,'kill') as kill:
+            with self.assertRaises(ValueError):
+                maintenance.finish_update_chunk(Path('/unused'),123)
+            kill.assert_not_called()
+
+    def test_chunk_finish_requires_owning_maintenance_process(self):
+        with patch.object(Path,'read_bytes',side_effect=[b'/usr/bin/unattended-upgrade\0--verbose\0',b'python3\0other-script.py\0']),patch.object(Path,'read_text',return_value='PPid: 99'),patch.object(maintenance.os,'kill') as kill:
+            with self.assertRaises(ValueError):
+                maintenance.finish_update_chunk(Path('/unused'),123)
+            kill.assert_not_called()
+
     def test_catchup_pins_versions_and_prevents_removal(self):
         command=maintenance.security_command([{'name':'openssl','candidate':'3.0.2-0ubuntu1.29'}])
         self.assertIn('openssl=3.0.2-0ubuntu1.29',command)
