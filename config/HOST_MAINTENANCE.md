@@ -72,5 +72,26 @@ blind package downgrades.
 After successful maintenance remove the temporary Job and generated ConfigMap
 from the root Kustomization through Git. Retain the encrypted backup and reports.
 
+## 2026-09-12 verification (UTC+8)
+
+The isolated restore completed with 6 databases and 209 tables passing checks.
+The encrypted recovery bundle at `/srv/k3s-backups/maintenance/20260911T193900Z`
+verified 1,193 regular files and 4 SQLite copies; its matching 40,031,919-byte
+offsite copy and Windows DPAPI key recovery were checked before updates.
+
+The node rebooted successfully into `5.15.0-191-generic`; K3s remains
+`v1.36.3+k3s1`. Nginx is `1.18.0-6ubuntu14.20`, OpenSSH
+`1:8.9p1-3ubuntu0.17`, OpenSSL `3.0.2-0ubuntu1.29`, libc6
+`2.35-0ubuntu3.15`. No eligible security updates remain and dpkg audit is clean.
+Docker 26.1.3 and its host containerd 1.6.33 were not upgraded; K3s continues
+using its own embedded containerd. The prior kernel is retained.
+
+Actual kubelet config reports the two reservations and full eviction thresholds
+above. Allocatable resources are 3500m CPU and 5256524Ki memory (about 5 GiB),
+with no memory, disk or PID pressure. Business workloads and Flux returned to
+Ready; the open platform retried OIDC discovery while Keycloak was starting.
+The temporary restore Job/ConfigMap are removed from reconciliation after this
+verification; existing PVCs and the recovery bundle are retained.
+
 References: [Kubernetes reservations](https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/),
 [Ubuntu automatic security updates](https://documentation.ubuntu.com/server/how-to/software/automatic-updates/).
