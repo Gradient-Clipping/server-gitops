@@ -77,3 +77,34 @@ live data directory.
 References: [MySQL memory allocation](https://dev.mysql.com/doc/refman/8.4/en/memory-use.html),
 [Performance Schema sizing](https://dev.mysql.com/doc/refman/8.4/en/performance-schema-system-variables.html),
 [Performance Schema memory lifecycle](https://dev.mysql.com/doc/refman/8.4/en/performance-schema-memory-model.html).
+
+## Production verification on 2026-09-11
+
+Flux applied tuning commit `ff28acc65d86371458de4fdc22c939bd570fd4ea` and the new
+MySQL pod became Ready at 15:07:06 UTC. All configured variables matched the
+candidate; `innodb_flush_log_at_trx_commit=1` and `sync_binlog=1` were preserved.
+A read-only full logical dump completed successfully in 3.11 seconds after
+rollout to exercise the normal backup workload.
+
+At 15:12:10 UTC, after 309 seconds of uptime and normal client reconnections:
+
+| Measurement | Before rollout (after preflight backups) | After rollout and backup read load |
+| --- | --- | --- |
+| MySQL process RSS | 1,005.3 MiB | 441.9 MiB |
+| Container working set | 999.3 MiB | 436.8 MiB |
+| Performance Schema allocated memory | 296.78 MiB | 93.74 MiB |
+
+The final 192-second interval handled 7,162 queries with 12,734 table-cache hits
+and 41 misses (99.679% hit rate). Two cache-overflow events occurred, with 399
+tables open at the final sample; there was no sustained churn in this interval.
+There were no aborted connections, InnoDB log-buffer waits, lost Performance
+Schema coverage counters, container-limit hits, or OOM events after rollout.
+Seventeen connections were present, including all five application accounts.
+Internal readiness checks and public checks for Keycloak OIDC discovery, Easy
+SWU, the status page, and the open platform returned HTTP 200.
+
+These are short-term, warmed measurements, not a forecast of long-term RSS.
+The baseline had approximately 20 days of allocator/cache history, and future
+workloads can increase memory use within the unchanged 1 GiB container limit.
+The verification Job and generated ConfigMap were pruned through GitOps;
+both production data and backup PVCs remained Bound.
