@@ -38,6 +38,11 @@ jobs:
           python -m compileall -q controller/domain-reconciler/src
           python -m unittest discover -s controller/domain-reconciler/tests -v
 
+      - name: Validate webhook catalog and provisioning
+        run: |
+          python scripts/flux_webhooks.py check
+          python -m unittest discover -s scripts/tests -v
+
       - name: Build domain reconciler image
         run: docker build --tag domain-reconciler:verify controller/domain-reconciler
 
