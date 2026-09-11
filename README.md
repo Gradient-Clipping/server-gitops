@@ -13,7 +13,7 @@ This private repository is the desired state for the single-node `easy-platform-
 5. A signed GitHub push webhook triggers Flux to fetch the new GitOps revision
    and apply the desired state to K3s.
 
-Nine independent ImageRepository/ImagePolicy pairs feed one ImageUpdateAutomation
+Ten independent ImageRepository/ImagePolicy pairs feed one ImageUpdateAutomation
 (`flux-system/platform-images`). It selects policies labelled
 `platform.lazycampus.com/image-automation: platform-images` and updates marked
 images below `clusters/easy-platform`. This replaces seven writers to the same
@@ -85,6 +85,21 @@ administration interface; publishing payment support does not change that settin
 - `apps/easy-swu`: `easy-api.lazycampus.com` and
   `easy-admin.lazycampus.com`, including the mini-program API, management UI,
   Redis, MinIO, a persistent Tailscale userspace gateway, and MinIO backups.
+- `apps/status-page`: the anonymous public service status page at
+  `status.lazycampus.com`, built from `Gradient-Clipping/lazycampus-status`.
+  Its catalog presents core projects and their expandable services; internal
+  Kubernetes inventory is visible only to the Keycloak administrator. Monitoring
+  pulls from existing health endpoints and read-only Kubernetes APIs, so other
+  applications do not depend on this service. New projects are added through
+  `monitors.json` or the scoped administration API. The service uses its own
+  `lazycampus_status` MySQL database and no persistent application volume.
+  Run `scripts/bootstrap-status-page.sh --runtime-only` from a committed checkout
+  before the first Flux rollout, then run the script without that flag to install
+  the dedicated Nginx origin-authentication configuration and EdgeOne rule.
+  Recovery credentials stay under `/etc/platform-secrets/status-*` and
+  `/etc/platform-secrets/mysql-apps`; optional Sender delivery uses a separate
+  `status-sender` Kubernetes Secret. The database joins the existing all-database
+  backup. This same-host status page does not provide off-host outage monitoring.
 
 Domains are declared in each application's `ingress.yaml`. An Ingress with
 `platform.lazycampus.com/domain-automation: enabled` is reconciled every minute.

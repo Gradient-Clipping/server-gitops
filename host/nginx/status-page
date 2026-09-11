@@ -1,0 +1,42 @@
+# Trust EdgeOne client IPs only with the per-status-page origin credential.
+map $http_x_status_origin_key $status_origin_authenticated {
+    default 0;
+    include /etc/nginx/private/status-origin-keys/*.conf;
+}
+map $status_origin_authenticated $status_origin_ip_candidate {
+    default $remote_addr;
+    1 $http_eo_connecting_ip;
+}
+geo $status_origin_ip_candidate $status_origin_ip_valid {
+    default 1;
+    255.255.255.255 0;
+}
+map "$status_origin_authenticated:$status_origin_ip_valid" $status_client_ip {
+    default $remote_addr;
+    "1:1" $status_origin_ip_candidate;
+}
+limit_req_zone $status_client_ip zone=status_ingress:10m rate=10r/s;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name status.lazycampus.com;
+    access_log off;
+    client_max_body_size 32k;
+    limit_req_status 429;
+
+    location /internal/ { return 404; }
+    location / {
+        limit_req zone=status_ingress burst=30 nodelay;
+        proxy_pass http://127.0.0.1:32080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $status_client_ip;
+        proxy_set_header X-Forwarded-For $status_client_ip;
+        proxy_set_header X-Status-Origin-Key "";
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_read_timeout 30s;
+        proxy_send_timeout 30s;
+    }
+}
