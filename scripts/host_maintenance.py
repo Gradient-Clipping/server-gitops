@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import secrets
 import shutil
+import signal
 import sqlite3
 import subprocess
 import tarfile
@@ -94,6 +95,28 @@ def cleanup_staging(path):
         raise ValueError('Staging cleanup boundary failed')
     if staging.exists():
         shutil.rmtree(staging)
+
+
+def security_command(items):
+    if not items or any(EXCLUDED_PACKAGES.match(item['name']) for item in items):
+        raise ValueError('Only eligible security packages may be selected')
+    return ['apt-get','--assume-yes','--no-remove','--only-upgrade',
+            '-o','Dpkg::Options::=--force-confdef','-o','Dpkg::Options::=--force-confold',
+            'install',*[item['name']+'='+item['candidate'] for item in items]]
+
+
+def stop_updates(path, pid):
+    # Graceful SIGTERM only to this driver's unattended-upgrade child. Never
+    # signal dpkg or arbitrary PIDs; unattended-upgrade finishes its current chunk.
+    command=Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')
+    if b'/usr/bin/unattended-upgrade' not in command or b'--verbose' not in command:
+        raise ValueError('The PID is not the maintenance unattended-upgrade process')
+    parent=int(re.search(r'^PPid:\s+(\d+)',Path(f'/proc/{pid}/status').read_text(),re.M)[1])
+    owner=Path(f'/proc/{parent}/cmdline').read_bytes().decode().split('\0')
+    if not any(re.fullmatch(r'/var/lib/platform-gitops/[0-9a-f]{40}/scripts/host_maintenance.py',p) for p in owner) or 'apply' not in owner or str(path) not in owner:
+        raise ValueError('Process does not belong to this maintenance directory')
+    os.kill(pid,signal.SIGTERM)
+    print('Graceful stop requested for this maintenance update process.')
 
 
 def backup(path):
@@ -218,8 +241,21 @@ def apply(path):
         target = Path('/etc/apt/apt.conf.d/99-platform-security')
         shutil.copy2(ROOT/'host/apt/99-platform-security', target)
         target.chmod(0o644)
-        with open(path/'security-upgrade.log','w') as log:
-            for command in [['apt-get','update'],['unattended-upgrade','--verbose']]:
+        with open(path/'security-upgrade.log','a') as log:
+            environment={**os.environ,'DEBIAN_FRONTEND':'noninteractive','NEEDRESTART_MODE':'l'}
+            result=subprocess.run(['apt-get','update'],stdout=log,stderr=log,env=environment,timeout=600)
+            if result.returncode:
+                raise ValueError('APT refresh failed; inspect the maintenance log')
+            eligible=packages()['eligible']
+            (path/'selected-security.json').write_text(json.dumps(eligible,indent=2))
+            if eligible:
+                command=security_command(eligible)
+                simulation=run(command[:1]+['--simulate']+command[1:])
+                planned=re.findall(r'^Inst (\S+)',simulation,re.M)
+                if any(EXCLUDED_PACKAGES.match(name) for name in planned) or re.search(r'^Remv ',simulation,re.M):
+                    raise ValueError('APT simulation changed excluded infrastructure or removed a package')
+                log.write(simulation)
+                log.flush()
                 result = subprocess.run(command,stdout=log,stderr=log,env={**os.environ,'DEBIAN_FRONTEND':'noninteractive','NEEDRESTART_MODE':'l'},timeout=2400)
                 if result.returncode:
                     raise ValueError('Security update failed; inspect the root-only maintenance log')
@@ -244,9 +280,10 @@ def apply(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase',choices=['plan','backup','verify','cleanup-staging','confirm-offsite','apply','reboot','postcheck'])
+    parser.add_argument('phase',choices=['plan','backup','verify','cleanup-staging','confirm-offsite','stop-updates','apply','reboot','postcheck'])
     parser.add_argument('--directory',required=True,type=directory)
     parser.add_argument('--sha256')
+    parser.add_argument('--pid',type=int)
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise ValueError('Host maintenance requires root')
@@ -262,6 +299,10 @@ def main():
     elif args.phase == 'cleanup-staging':
         cleanup_staging(path)
         print('Only the named maintenance staging directory was removed.')
+    elif args.phase == 'stop-updates':
+        if not args.pid or args.pid<2:
+            raise ValueError('A specific maintenance process PID is required')
+        stop_updates(path,args.pid)
     elif args.phase == 'confirm-offsite':
         record = state(path)
         if args.sha256 != record['archiveSha256']:

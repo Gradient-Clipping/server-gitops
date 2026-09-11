@@ -43,11 +43,12 @@ def dpapi(secret, protect):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase',choices=['plan','backup','verify','cleanup-staging','export','apply','reboot','postcheck'])
+    parser.add_argument('phase',choices=['plan','backup','verify','cleanup-staging','export','stop-updates','apply','reboot','postcheck'])
     parser.add_argument('--revision',required=True)
     parser.add_argument('--run-id',required=True,type=int)
     parser.add_argument('--directory',required=True)
     parser.add_argument('--output',type=Path)
+    parser.add_argument('--pid',type=int)
     args=parser.parse_args()
     if not re.fullmatch(r'[0-9a-f]{40}',args.revision) or not re.fullmatch(r'/srv/k3s-backups/maintenance/[0-9]{8}T[0-9]{6}Z',args.directory):
         raise ValueError('Exact revision and maintenance timestamp directory required')
@@ -63,6 +64,10 @@ def main():
     remote='/var/lib/platform-gitops/'+args.revision
     ssh('install -d -m 0700 '+shlex.quote(remote)+' && tar -xf - -C '+shlex.quote(remote),archive,binary=True)
     command=['python3',remote+'/scripts/host_maintenance.py',args.phase,'--directory',args.directory]
+    if args.phase=='stop-updates':
+        if not args.pid:
+            raise ValueError('An exact maintenance process PID is required')
+        command += ['--pid',str(args.pid)]
     if args.phase=='export':
         if not args.output:
             raise ValueError('Provide an offsite output directory')

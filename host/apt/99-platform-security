@@ -20,3 +20,6 @@ Unattended-Upgrade::Automatic-Reboot "false";
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "false";
 Unattended-Upgrade::Remove-New-Unused-Dependencies "false";
 Unattended-Upgrade::Remove-Unused-Dependencies "false";
+// Git/host configuration stays authoritative during unattended package updates.
+// Preserve modified conffiles; review vendor .dpkg-dist files during maintenance.
+Dpkg::Options { "--force-confdef"; "--force-confold"; };
