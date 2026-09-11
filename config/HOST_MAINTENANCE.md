@@ -48,6 +48,11 @@ over SSH and leaves GitHub management credentials on the workstation.
    per-package fallback and configuration prompts; daily security updates retain
    unattended-upgrades. Let an existing update finish before starting another
    maintenance phase; never terminate dpkg during installation.
+   For an existing minimal-step updater, `finish-update-chunk --pid <PID>` checks
+   its exact command and owning maintenance process, then requests Ubuntu's normal
+   SIGTERM shutdown after the current chunk. The installed handler only sets a
+   stop flag, checked between chunks. Wait for that process and driver to exit and
+   require a clean dpkg audit before running batch catch-up. Never send SIGKILL.
 7. Run `reboot`, then `postcheck` after SSH returns. Verify the new kernel, node
    allocatable resources, actual kubelet reservations/eviction, all workloads,
    production reconciliation and public service checks. Do not report completion
