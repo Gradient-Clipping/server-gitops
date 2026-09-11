@@ -7,7 +7,7 @@
     {
       "name": "github-gitops",
       "repository": "Gradient-Clipping/server-gitops",
-      "branch": "main",
+      "branch": "production",
       "event": "push",
       "resources": [
         "flux-system"

@@ -18,7 +18,7 @@
         "secretRef": {
           "name": "flux-github-webhook-token"
         },
-        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/server-gitops\" && has(req.ref) && req.ref == \"refs/heads/main\" && has(req.deleted) && req.deleted == false",
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/server-gitops\" && has(req.ref) && req.ref == \"refs/heads/production\" && has(req.deleted) && req.deleted == false",
         "resources": [
           {
             "apiVersion": "source.toolkit.fluxcd.io/v1",

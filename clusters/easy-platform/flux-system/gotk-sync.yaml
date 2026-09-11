@@ -7,7 +7,7 @@ spec:
   interval: 1h
   timeout: 1m0s
   ref:
-    branch: main
+    branch: production
   secretRef:
     name: flux-system
   url: ssh://git@github.com/Gradient-Clipping/server-gitops.git
@@ -18,6 +18,7 @@ metadata:
   name: flux-system
   namespace: flux-system
 spec:
+  suspend: false
   interval: 5m0s
   path: ./clusters/easy-platform
   prune: true

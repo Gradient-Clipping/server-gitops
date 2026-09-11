@@ -22,6 +22,18 @@ the Git Source and push receiver to production through a controlled, versioned
 cutover. ImageUpdateAutomation must continue checking out and pushing `main` so
 image changes cannot bypass validation.
 
+For the one-time cutover, use the committed `scripts/production_cutover.py` from
+an administrator checkout. After PR validation, `prepare --checkpoint <file>`
+requires healthy Flux and matching main/production revisions, records the
+baseline and temporarily suspends reconciliation and image writes. It does not
+stop workloads. Merge the source/receiver change and wait for the main validation
+and promotion to succeed. `finish --checkpoint <file> --revision <SHA> --run-id
+<ID>` verifies the promoted run and applies only the Git Source, Kustomization
+and writer manifests from that exact commit, resuming them on production.
+This prevents the old production branch from briefly restoring a main source.
+`cancel` is allowed only before either branch changes. After cutover, subsequent
+updates need no workstation or SSH intervention.
+
 This workflow is a deployment gate. Private-repository branch restrictions may
 require a GitHub plan supporting rulesets; it does not claim to revoke an owner's
 ability to edit workflows or directly write refs. Keep write access restricted,
