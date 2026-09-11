@@ -46,9 +46,8 @@ over SSH and leaves GitHub management credentials on the workstation.
    success or failure. Root-only `security-upgrade.log` contains package diagnostics.
    The one-time backlog uses APT's batch solver to avoid unattended-upgrade's slow
    per-package fallback and configuration prompts; daily security updates retain
-   unattended-upgrades. If cancelling an older maintenance planner is necessary,
-   `stop-updates --pid <PID>` verifies its command and owning maintenance process
-   before graceful SIGTERM; it never signals dpkg.
+   unattended-upgrades. Let an existing update finish before starting another
+   maintenance phase; never terminate dpkg during installation.
 7. Run `reboot`, then `postcheck` after SSH returns. Verify the new kernel, node
    allocatable resources, actual kubelet reservations/eviction, all workloads,
    production reconciliation and public service checks. Do not report completion
