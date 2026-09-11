@@ -7,4 +7,5 @@ resources:
   - backend.yaml
   - frontend.yaml
   - ingress.yaml
+  - network-policy.yaml
   - image-automation.yaml
