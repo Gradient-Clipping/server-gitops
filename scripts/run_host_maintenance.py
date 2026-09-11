@@ -43,7 +43,7 @@ def dpapi(secret, protect):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase',choices=['plan','backup','verify','export','apply','reboot','postcheck'])
+    parser.add_argument('phase',choices=['plan','backup','verify','cleanup-staging','export','apply','reboot','postcheck'])
     parser.add_argument('--revision',required=True)
     parser.add_argument('--run-id',required=True,type=int)
     parser.add_argument('--directory',required=True)
