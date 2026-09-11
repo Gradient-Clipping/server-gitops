@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: platform
-          image: ccr.ccs.tencentyun.com/lazycampus/lazycampus-platform:1.0.4 # {"$imagepolicy": "flux-system:lazycampus-platform"}
+          image: ccr.ccs.tencentyun.com/lazycampus/lazycampus-platform:1.0.5 # {"$imagepolicy": "flux-system:lazycampus-platform"}
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
