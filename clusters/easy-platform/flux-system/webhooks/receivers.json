@@ -1,0 +1,245 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-gitops",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "push"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/server-gitops\" && has(req.ref) && req.ref == \"refs/heads/main\" && has(req.deleted) && req.deleted == false",
+        "resources": [
+          {
+            "apiVersion": "source.toolkit.fluxcd.io/v1",
+            "kind": "GitRepository",
+            "name": "flux-system"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-domain-reconciler",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/server-gitops\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"main\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/server-gitops\" && req.workflow_run.path == \".github/workflows/publish-domain-reconciler.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "domain-reconciler"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-homepage",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/lazycampus-homepage\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"main\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/lazycampus-homepage\" && req.workflow_run.path == \".github/workflows/publish.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "lazycampus-site"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-bbbto",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/bbbto-mnp\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"main\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/bbbto-mnp\" && req.workflow_run.path == \".github/workflows/publish.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "bbbto-mnp"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-smart-shop",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"ystemsrx/smart-shop\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"master\" && req.workflow_run.head_repository.full_name == \"ystemsrx/smart-shop\" && req.workflow_run.path == \".github/workflows/publish.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "smart-shop-backend"
+          },
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "smart-shop-frontend"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-easy-swu-api",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"master\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && req.workflow_run.path == \".github/workflows/publish-api.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "easy-swu-api"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-identity-bridge",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"master\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && req.workflow_run.path == \".github/workflows/publish-identity-bridge.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "identity-bridge"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-easy-swu-admin",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/easy-swu-admin\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"main\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/easy-swu-admin\" && req.workflow_run.path == \".github/workflows/publish.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "easy-swu-admin"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-open-platform",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/lazycampus-platform\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"main\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/lazycampus-platform\" && req.workflow_run.path == \".github/workflows/publish.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "lazycampus-platform"
+          }
+        ]
+      }
+    }
+  ]
+}
