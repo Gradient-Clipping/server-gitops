@@ -1,0 +1,27 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageUpdateAutomation
+metadata:
+  name: platform-images
+  namespace: flux-system
+spec:
+  interval: 1h
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  policySelector:
+    matchLabels:
+      platform.lazycampus.com/image-automation: platform-images
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: flux@lazycampus.com
+        name: Flux Image Automation
+      messageTemplate: "chore(images): update platform images"
+    push:
+      branch: main
+  update:
+    path: ./clusters/easy-platform
+    strategy: Setters
