@@ -183,7 +183,7 @@ def post(url, hook, token, payload, valid_signature=True):
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
-    except urllib.error.URLError:
+    except (urllib.error.URLError, TimeoutError):
         raise RuntimeError("Webhook endpoint connection failed") from None
 
 
