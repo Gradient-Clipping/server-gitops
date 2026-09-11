@@ -21,3 +21,11 @@ class RestoreIsolationTests(unittest.TestCase):
     def test_rejects_cross_database_restore(self):
         with self.assertRaises(ValueError):
             module.extract(["-- Current Database: `lazycampus_status`\n", "USE `mysql`;\n"], "status_restore_0123456789abcdef")
+
+    def test_never_applies_global_dump_epilogue(self):
+        result = module.extract(["-- Current Database: `lazycampus_status`\n", "CREATE TABLE `components` (id INT);\n", "/*!80000 SET GLOBAL INNODB_STATS_AUTO_RECALC=@OLD_INNODB_STATS_AUTO_RECALC */;\n"], "status_restore_0123456789abcdef")
+        self.assertNotIn("SET GLOBAL", result)
+
+    def test_rejects_destructive_server_level_statement(self):
+        with self.assertRaises(ValueError):
+            module.extract(["-- Current Database: `lazycampus_status`\n", "DROP DATABASE `lazycampus_status`;\n"], "status_restore_0123456789abcdef")

@@ -172,9 +172,13 @@ The installed helper is versioned as `scripts/provision-mysql-database.sh` in
 this repository.
 
 A logical backup of all databases runs daily at 03:17 Asia/Shanghai and keeps
-14 days under `/srv/k3s-backups/mysql`. These local backups protect against
+5 days under `/srv/k3s-backups/mysql`. These local backups protect against
 application-level mistakes but do not replace an off-server backup of the
 host paths and `/etc/platform-secrets`.
+
+The shared instance uses a bounded memory profile for its 1 GiB container limit.
+See [the memory profile and recovery checks](config/MYSQL_MEMORY.md) before
+changing its cache or Performance Schema sizing.
 
 ## Unified identity platform
 

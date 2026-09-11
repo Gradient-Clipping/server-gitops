@@ -15,6 +15,9 @@ spec:
     type: RollingUpdate
   template:
     metadata:
+      annotations:
+        # ConfigMap subPath mounts require a new pod to pick up changed settings.
+        platform.lazycampus.com/config-revision: "2026-09-11-memory-v1"
       labels:
         app.kubernetes.io/name: platform-mysql
     spec:

@@ -22,6 +22,12 @@ def extract(lines, target):
             continue
         if line.startswith("CREATE DATABASE"):
             continue
+        # Full-dump epilogues may restore global server settings. They have no
+        # place in an isolated database verification and must never be executed.
+        if re.match(r"\s*(?:/\*![0-9]+\s*)?SET\s+(?:@@)?GLOBAL\b", line, re.I):
+            continue
+        if re.match(r"\s*(?:/\*![0-9]+\s*)?(?:DROP\s+DATABASE|ALTER\s+(?:DATABASE|USER|INSTANCE)|CREATE\s+USER|DROP\s+USER|GRANT|REVOKE|SHUTDOWN|RESET|PURGE|CHANGE)\b", line, re.I):
+            raise ValueError("Server-level statement is not allowed in isolated restore")
         if line.strip() == "USE `lazycampus_status`;":
             line = f"USE `{target}`;\n"
         if re.match(r"\s*USE\s", line, re.I) and line.strip() != f"USE `{target}`;":
@@ -36,7 +42,20 @@ def extract(lines, target):
         chunks.append(line)
     if not active or not any("CREATE TABLE `components`" in line for line in chunks):
         raise ValueError("Backup does not contain Status tables")
-    return "SET FOREIGN_KEY_CHECKS=0;\n" + "".join(chunks)
+    # An extracted final database can include mysqldump's global epilogue.
+    # Initialize the session variables normally provided by the full dump header.
+    header = """SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT;
+SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS;
+SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION;
+SET NAMES utf8mb4;
+SET @OLD_TIME_ZONE=@@TIME_ZONE;
+SET TIME_ZONE='+00:00';
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
+SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0;
+"""
+    return header + "".join(chunks)
 
 
 def sql(statement):
