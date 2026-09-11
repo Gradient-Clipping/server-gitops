@@ -1,3 +1,28 @@
+# EdgeOne Free does not provide a maintained origin CIDR allowlist. Trust its
+# client IP only when the Easy SWU origin key also matches. The key is generated
+# on the host and installed in EdgeOne as a SET (not ADD) request-header rule.
+# A missing key file keeps the direct-peer fallback, including on first install.
+map $http_x_easy_swu_origin_key $easy_swu_origin_authenticated {
+    default 0;
+    include /etc/nginx/private/easy-swu-origin-keys/*.conf;
+}
+
+map $easy_swu_origin_authenticated $easy_swu_origin_ip_candidate {
+    default $remote_addr;
+    1 $http_eo_connecting_ip;
+}
+
+# geo parses both IPv4 and IPv6; invalid/missing addresses become 255.255.255.255.
+geo $easy_swu_origin_ip_candidate $easy_swu_origin_ip_valid {
+    default 1;
+    255.255.255.255 0;
+}
+
+map "$easy_swu_origin_authenticated:$easy_swu_origin_ip_valid" $easy_swu_client_ip {
+    default $remote_addr;
+    "1:1" $easy_swu_origin_ip_candidate;
+}
+
 server {
     listen 80;
     listen [::]:80;
@@ -10,10 +35,10 @@ server {
         proxy_pass http://127.0.0.1:32080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        # Replace caller-supplied chains. Only configure real_ip_header with
-        # verified EdgeOne source CIDRs; otherwise remote_addr is the edge IP.
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $easy_swu_client_ip;
+        proxy_set_header X-Forwarded-For $easy_swu_client_ip;
+        # Never expose the origin credential to Traefik, API logs or the app.
+        proxy_set_header X-Easy-SWU-Origin-Key "";
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-Host $host;
         proxy_read_timeout 180s;
@@ -33,8 +58,9 @@ server {
         proxy_pass http://127.0.0.1:32080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $easy_swu_client_ip;
+        proxy_set_header X-Forwarded-For $easy_swu_client_ip;
+        proxy_set_header X-Easy-SWU-Origin-Key "";
         proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-Host $host;
         proxy_read_timeout 180s;

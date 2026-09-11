@@ -26,7 +26,8 @@ def github(path):
 
 def verified_tree(revision):
     checks = github(f"/commits/{revision}/check-runs")
-    for name in ("verify-backend", "verify-frontend"):
+    names = ("verify",) if any(c["name"] == "verify" for c in checks["check_runs"]) else ("verify-backend", "verify-frontend")
+    for name in names:
         if not any(c["name"] == name and c["head_sha"] == revision and c["conclusion"] == "success" for c in checks["check_runs"]):
             raise ValueError(f"Required successful check is missing: {name}")
     tree = github(f"/git/trees/{revision}?recursive=1")
