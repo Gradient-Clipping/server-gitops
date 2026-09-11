@@ -13,6 +13,35 @@ branches/workflows, and failed runs cannot request image reconciliation. The
 existing image policies still decide which immutable TCR version is deployable.
 The image controllers notify downstream automation when a policy changes.
 
+All nine ImagePolicy objects carry
+`platform.lazycampus.com/image-automation: platform-images`. One shared
+`ImageUpdateAutomation/flux-system/platform-images` selects that label, updates
+Setters below `clusters/easy-platform`, and commits to `server-gitops/main`.
+The previous seven automation objects are pruned by Flux. ImageRepository,
+ImagePolicy, Receiver, registry and workload identities remain unchanged.
+
+The installed image-automation-controller v1.2.4 enqueues all automations in the
+namespace on an ImagePolicy change. A policySelector alone does not narrow this
+event fan-out, and even a no-change reconciliation can contact Git to check its
+revision. A single writer removes those six redundant reconciliations without
+upgrading or modifying Flux. Concurrent image changes can be included together;
+an image arriving after a snapshot queues another pass. The hourly fallback and
+normal Flux error retries remain active.
+
+When adding an image, add its labelled policy and image setter under the shared
+update path; do not create another writer to the same branch. To pause automatic
+updates for one application, change its policy label value to `paused` in Git
+(both policies for Smart Shop or Easy SWU). Wait for Flux to apply the label
+before committing a rollback. Restore `platform-images` to re-enable it; the
+next image event or hourly fallback picks it up. Suspending `platform-images`
+pauses automatic image commits for every application.
+
+Inspect `status.observedPolicies` on `platform-images` to verify the selected
+images and `status.lastPushCommit` to trace its Git write. Validate a real
+publishing workflow after rollout: one corresponding image scan, one writer
+reconciliation/commit, then the Git push receiver and workload rollout. Changing
+the automation configuration itself causes a one-time initial reconciliation.
+
 Traffic follows Cloudflare DNS-only CNAME -> EdgeOne HTTPS -> host Nginx HTTP ->
 Traefik -> Flux `webhook-receiver`. Only `/hook/` accepts POST requests on
 `hooks.lazycampus.com`. Nginx disables access logging on this host and limits

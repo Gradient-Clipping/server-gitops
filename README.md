@@ -8,9 +8,18 @@ This private repository is the desired state for the single-node `easy-platform-
 2. The workflow publishes immutable tags to Tencent TCR.
 3. A signed GitHub `workflow_run` webhook for the successful production publisher
    immediately triggers Flux image reflection to select the newest allowed tag.
-4. Flux image automation commits the tag change to this repository.
+4. The shared Flux `platform-images` automation commits eligible tag changes to
+   this repository.
 5. A signed GitHub push webhook triggers Flux to fetch the new GitOps revision
    and apply the desired state to K3s.
+
+Nine independent ImageRepository/ImagePolicy pairs feed one ImageUpdateAutomation
+(`flux-system/platform-images`). It selects policies labelled
+`platform.lazycampus.com/image-automation: platform-images` and updates marked
+images below `clusters/easy-platform`. This replaces seven writers to the same
+Git repository/branch: one policy change now queues one Git update, and each
+hourly fallback uses one writer. Unmarked images are not managed by this task.
+Both Smart Shop images and both Easy SWU images remain independently selectable.
 
 The Git source, image sources and image automation use a one-hour polling
 fallback. The Kustomization keeps its five-minute cluster drift checks.
@@ -61,8 +70,8 @@ administration interface; publishing payment support does not change that settin
 - `apps/lazycampus-site`: `lazycampus.com` and `www.lazycampus.com`, built from
   `Gradient-Clipping/lazycampus-homepage/main` and published as
   `ccr.ccs.tencentyun.com/lazycampus/lazycampus-homepage:1.0.<run-number>`.
-  The existing namespace, workload, routing and image automation resource names
-  remain `lazycampus-site`. The legacy `Gradient-Clipping/lazycampus-site`
+  The existing namespace, workload, routing, ImageRepository and ImagePolicy
+  names remain `lazycampus-site`. The legacy `Gradient-Clipping/lazycampus-site`
   source repository is retained and only runs verification; it no longer
   publishes production images.
   The one-time EdgeOne cache operation is recorded outside active reconciliation
