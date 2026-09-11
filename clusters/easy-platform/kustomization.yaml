@@ -4,6 +4,7 @@ resources:
   - flux-system/gotk-sync.yaml
   - flux-system/image-update-automation.yaml
   - flux-system/webhooks
+  - infrastructure/flux-controllers
   - infrastructure/ingress
   - infrastructure/mysql
   - infrastructure/identity

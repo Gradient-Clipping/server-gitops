@@ -59,7 +59,7 @@
       "repository": "Gradient-Clipping/easy-swu-backend",
       "branch": "master",
       "event": "workflow_run",
-      "workflow": ".github/workflows/publish-api.yml",
+      "workflow": ".github/workflows/publish-identity-bridge.yml",
       "resources": [
         "easy-swu-api"
       ]

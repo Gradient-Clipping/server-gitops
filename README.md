@@ -9,9 +9,11 @@ This private repository is the desired state for the single-node `easy-platform-
 3. A signed GitHub `workflow_run` webhook for the successful production publisher
    immediately triggers Flux image reflection to select the newest allowed tag.
 4. The shared Flux `platform-images` automation commits eligible tag changes to
-   this repository.
-5. A signed GitHub push webhook triggers Flux to fetch the new GitOps revision
-   and apply the desired state to K3s.
+   this repository's `main` branch.
+5. CI validates the exact `main` revision and fast-forwards `production` only
+   after success. Stale and divergent revisions are rejected.
+6. A signed GitHub `production` push webhook triggers Flux to fetch the validated
+   revision and apply it to K3s. See [production promotion](config/PRODUCTION_PROMOTION.md).
 
 Ten independent ImageRepository/ImagePolicy pairs feed one ImageUpdateAutomation
 (`flux-system/platform-images`). It selects policies labelled
@@ -38,11 +40,17 @@ Easy SWU uses explicit `TRUST_PROXY_CIDRS` in its API Deployment. Deploy the API
 change together with `host/nginx/easy-swu`, which replaces caller-supplied
 `X-Forwarded-For` chains. The ingress NetworkPolicy remains part of this trust
 boundary. Apply host Nginx files through the host configuration workflow; Flux
-does not install them. With EdgeOne and no verified real-IP configuration,
-limits apply to the edge node IP. Restore client IPs only after installing and
-maintaining verified EdgeOne source CIDRs and checking that EdgeOne overwrites
-the chosen client-IP header. Never enable blanket proxy trust or trust the
-leftmost caller-supplied address.
+does not install them. Easy SWU restores the EdgeOne client IP only when the
+origin credential matches a root-only include under
+`/etc/nginx/private/easy-swu-origin-keys/` and the supplied IP parses correctly.
+EdgeOne sets the credential header; Nginx removes it before proxying upstream.
+Missing or invalid credentials fall back to the direct peer address.
+
+The six existing Flux controller Deployments are managed in
+`infrastructure/flux-controllers` with their current pinned versions and resource
+budgets. Controller adoption does not upgrade the controllers, CRDs or RBAC.
+Easy SWU API and Bridge share `publish-identity-bridge.yml`; both image policies
+remain independent. The publisher preserves that workflow's increasing tag counter.
 
 ## Repository map
 

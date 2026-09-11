@@ -1,0 +1,1044 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/component": "helm-controller",
+          "app.kubernetes.io/instance": "flux-system",
+          "app.kubernetes.io/part-of": "flux",
+          "app.kubernetes.io/version": "v2.9.4",
+          "control-plane": "controller"
+        },
+        "name": "helm-controller",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "helm-controller"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "prometheus.io/port": "8080",
+              "prometheus.io/scrape": "true"
+            },
+            "labels": {
+              "app": "helm-controller",
+              "app.kubernetes.io/component": "helm-controller",
+              "app.kubernetes.io/instance": "flux-system",
+              "app.kubernetes.io/part-of": "flux",
+              "app.kubernetes.io/version": "v2.9.4"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "--events-addr=http://notification-controller.$(RUNTIME_NAMESPACE).svc.cluster.local./",
+                  "--watch-all-namespaces=true",
+                  "--log-level=info",
+                  "--log-encoding=json",
+                  "--enable-leader-election"
+                ],
+                "env": [
+                  {
+                    "name": "RUNTIME_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "valueFrom": {
+                      "resourceFieldRef": {
+                        "containerName": "manager",
+                        "divisor": "0",
+                        "resource": "limits.memory"
+                      }
+                    }
+                  }
+                ],
+                "image": "ccr.ccs.tencentyun.com/lazycampus/flux-controllers:helm-controller-v1.6.3",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "manager",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http-prom",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9440,
+                    "name": "healthz",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "temp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/os": "linux"
+            },
+            "priorityClassName": "system-cluster-critical",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 1337
+            },
+            "serviceAccount": "helm-controller",
+            "serviceAccountName": "helm-controller",
+            "terminationGracePeriodSeconds": 600,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "temp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/component": "image-automation-controller",
+          "app.kubernetes.io/instance": "flux-system",
+          "app.kubernetes.io/part-of": "flux",
+          "app.kubernetes.io/version": "v2.9.4",
+          "control-plane": "controller"
+        },
+        "name": "image-automation-controller",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "image-automation-controller"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "prometheus.io/port": "8080",
+              "prometheus.io/scrape": "true"
+            },
+            "labels": {
+              "app": "image-automation-controller",
+              "app.kubernetes.io/component": "image-automation-controller",
+              "app.kubernetes.io/instance": "flux-system",
+              "app.kubernetes.io/part-of": "flux",
+              "app.kubernetes.io/version": "v2.9.4"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "--events-addr=http://notification-controller.$(RUNTIME_NAMESPACE).svc.cluster.local./",
+                  "--watch-all-namespaces=true",
+                  "--log-level=info",
+                  "--log-encoding=json",
+                  "--enable-leader-election"
+                ],
+                "env": [
+                  {
+                    "name": "RUNTIME_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "valueFrom": {
+                      "resourceFieldRef": {
+                        "containerName": "manager",
+                        "divisor": "0",
+                        "resource": "limits.memory"
+                      }
+                    }
+                  }
+                ],
+                "image": "ccr.ccs.tencentyun.com/lazycampus/flux-controllers:image-automation-controller-v1.2.4",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "manager",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http-prom",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9440,
+                    "name": "healthz",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "temp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/os": "linux"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 1337
+            },
+            "serviceAccount": "image-automation-controller",
+            "serviceAccountName": "image-automation-controller",
+            "terminationGracePeriodSeconds": 10,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "temp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/component": "image-reflector-controller",
+          "app.kubernetes.io/instance": "flux-system",
+          "app.kubernetes.io/part-of": "flux",
+          "app.kubernetes.io/version": "v2.9.4",
+          "control-plane": "controller"
+        },
+        "name": "image-reflector-controller",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "image-reflector-controller"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "prometheus.io/port": "8080",
+              "prometheus.io/scrape": "true"
+            },
+            "labels": {
+              "app": "image-reflector-controller",
+              "app.kubernetes.io/component": "image-reflector-controller",
+              "app.kubernetes.io/instance": "flux-system",
+              "app.kubernetes.io/part-of": "flux",
+              "app.kubernetes.io/version": "v2.9.4"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "--events-addr=http://notification-controller.$(RUNTIME_NAMESPACE).svc.cluster.local./",
+                  "--watch-all-namespaces=true",
+                  "--log-level=info",
+                  "--log-encoding=json",
+                  "--enable-leader-election"
+                ],
+                "env": [
+                  {
+                    "name": "RUNTIME_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "valueFrom": {
+                      "resourceFieldRef": {
+                        "containerName": "manager",
+                        "divisor": "0",
+                        "resource": "limits.memory"
+                      }
+                    }
+                  }
+                ],
+                "image": "ccr.ccs.tencentyun.com/lazycampus/flux-controllers:image-reflector-controller-v1.2.4",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "manager",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http-prom",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9440,
+                    "name": "healthz",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "temp"
+                  },
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/os": "linux"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 1337
+            },
+            "serviceAccount": "image-reflector-controller",
+            "serviceAccountName": "image-reflector-controller",
+            "terminationGracePeriodSeconds": 10,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "temp"
+              },
+              {
+                "emptyDir": {},
+                "name": "data"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/component": "kustomize-controller",
+          "app.kubernetes.io/instance": "flux-system",
+          "app.kubernetes.io/part-of": "flux",
+          "app.kubernetes.io/version": "v2.9.4",
+          "control-plane": "controller"
+        },
+        "name": "kustomize-controller",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "kustomize-controller"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "prometheus.io/port": "8080",
+              "prometheus.io/scrape": "true"
+            },
+            "labels": {
+              "app": "kustomize-controller",
+              "app.kubernetes.io/component": "kustomize-controller",
+              "app.kubernetes.io/instance": "flux-system",
+              "app.kubernetes.io/part-of": "flux",
+              "app.kubernetes.io/version": "v2.9.4"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "--events-addr=http://notification-controller.$(RUNTIME_NAMESPACE).svc.cluster.local./",
+                  "--watch-all-namespaces=true",
+                  "--log-level=info",
+                  "--log-encoding=json",
+                  "--enable-leader-election"
+                ],
+                "env": [
+                  {
+                    "name": "RUNTIME_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "valueFrom": {
+                      "resourceFieldRef": {
+                        "containerName": "manager",
+                        "divisor": "0",
+                        "resource": "limits.memory"
+                      }
+                    }
+                  }
+                ],
+                "image": "ccr.ccs.tencentyun.com/lazycampus/flux-controllers:kustomize-controller-v1.9.4",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "manager",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "name": "http-prom",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9440,
+                    "name": "healthz",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "temp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/os": "linux"
+            },
+            "priorityClassName": "system-cluster-critical",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 1337
+            },
+            "serviceAccount": "kustomize-controller",
+            "serviceAccountName": "kustomize-controller",
+            "terminationGracePeriodSeconds": 60,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "temp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/component": "notification-controller",
+          "app.kubernetes.io/instance": "flux-system",
+          "app.kubernetes.io/part-of": "flux",
+          "app.kubernetes.io/version": "v2.9.4",
+          "control-plane": "controller"
+        },
+        "name": "notification-controller",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "notification-controller"
+          }
+        },
+        "strategy": {
+          "rollingUpdate": {
+            "maxSurge": "25%",
+            "maxUnavailable": "25%"
+          },
+          "type": "RollingUpdate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "prometheus.io/port": "8080",
+              "prometheus.io/scrape": "true"
+            },
+            "labels": {
+              "app": "notification-controller",
+              "app.kubernetes.io/component": "notification-controller",
+              "app.kubernetes.io/instance": "flux-system",
+              "app.kubernetes.io/part-of": "flux",
+              "app.kubernetes.io/version": "v2.9.4"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "--watch-all-namespaces=true",
+                  "--log-level=info",
+                  "--log-encoding=json",
+                  "--enable-leader-election"
+                ],
+                "env": [
+                  {
+                    "name": "RUNTIME_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "valueFrom": {
+                      "resourceFieldRef": {
+                        "containerName": "manager",
+                        "divisor": "0",
+                        "resource": "limits.memory"
+                      }
+                    }
+                  }
+                ],
+                "image": "ccr.ccs.tencentyun.com/lazycampus/flux-controllers:notification-controller-v1.9.3",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "manager",
+                "ports": [
+                  {
+                    "containerPort": 9090,
+                    "name": "http",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9292,
+                    "name": "http-webhook",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8080,
+                    "name": "http-prom",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9440,
+                    "name": "healthz",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/readyz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/tmp",
+                    "name": "temp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/os": "linux"
+            },
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 1337
+            },
+            "serviceAccount": "notification-controller",
+            "serviceAccountName": "notification-controller",
+            "terminationGracePeriodSeconds": 10,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "temp"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "labels": {
+          "app.kubernetes.io/component": "source-controller",
+          "app.kubernetes.io/instance": "flux-system",
+          "app.kubernetes.io/part-of": "flux",
+          "app.kubernetes.io/version": "v2.9.4",
+          "control-plane": "controller"
+        },
+        "name": "source-controller",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+          "matchLabels": {
+            "app": "source-controller"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "template": {
+          "metadata": {
+            "annotations": {
+              "kubectl.kubernetes.io/restartedAt": "2026-08-22T20:03:20+08:00",
+              "prometheus.io/port": "8080",
+              "prometheus.io/scrape": "true"
+            },
+            "labels": {
+              "app": "source-controller",
+              "app.kubernetes.io/component": "source-controller",
+              "app.kubernetes.io/instance": "flux-system",
+              "app.kubernetes.io/part-of": "flux",
+              "app.kubernetes.io/version": "v2.9.4"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "args": [
+                  "--events-addr=http://notification-controller.$(RUNTIME_NAMESPACE).svc.cluster.local./",
+                  "--watch-all-namespaces=true",
+                  "--log-level=info",
+                  "--log-encoding=json",
+                  "--enable-leader-election",
+                  "--storage-path=/data",
+                  "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local."
+                ],
+                "env": [
+                  {
+                    "name": "RUNTIME_NAMESPACE",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "metadata.namespace"
+                      }
+                    }
+                  },
+                  {
+                    "name": "TUF_ROOT",
+                    "value": "/tmp/.sigstore"
+                  },
+                  {
+                    "name": "GOMEMLIMIT",
+                    "valueFrom": {
+                      "resourceFieldRef": {
+                        "containerName": "manager",
+                        "divisor": "0",
+                        "resource": "limits.memory"
+                      }
+                    }
+                  }
+                ],
+                "image": "ccr.ccs.tencentyun.com/lazycampus/flux-controllers:source-controller-v1.9.4",
+                "imagePullPolicy": "IfNotPresent",
+                "livenessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/healthz",
+                    "port": "healthz",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "name": "manager",
+                "ports": [
+                  {
+                    "containerPort": 9090,
+                    "name": "http",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 8080,
+                    "name": "http-prom",
+                    "protocol": "TCP"
+                  },
+                  {
+                    "containerPort": 9440,
+                    "name": "healthz",
+                    "protocol": "TCP"
+                  }
+                ],
+                "readinessProbe": {
+                  "failureThreshold": 3,
+                  "httpGet": {
+                    "path": "/",
+                    "port": "http",
+                    "scheme": "HTTP"
+                  },
+                  "periodSeconds": 10,
+                  "successThreshold": 1,
+                  "timeoutSeconds": 1
+                },
+                "resources": {
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "1Gi"
+                  },
+                  "requests": {
+                    "cpu": "50m",
+                    "memory": "64Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "readOnlyRootFilesystem": true,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "volumeMounts": [
+                  {
+                    "mountPath": "/data",
+                    "name": "data"
+                  },
+                  {
+                    "mountPath": "/tmp",
+                    "name": "tmp"
+                  }
+                ]
+              }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "nodeSelector": {
+              "kubernetes.io/os": "linux"
+            },
+            "priorityClassName": "system-cluster-critical",
+            "restartPolicy": "Always",
+            "schedulerName": "default-scheduler",
+            "securityContext": {
+              "fsGroup": 1337
+            },
+            "serviceAccount": "source-controller",
+            "serviceAccountName": "source-controller",
+            "terminationGracePeriodSeconds": 10,
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "data"
+              },
+              {
+                "emptyDir": {},
+                "name": "tmp"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

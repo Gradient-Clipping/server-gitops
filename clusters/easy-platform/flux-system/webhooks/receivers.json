@@ -153,7 +153,7 @@
         "secretRef": {
           "name": "flux-github-webhook-token"
         },
-        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"master\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && req.workflow_run.path == \".github/workflows/publish-api.yml\"",
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"master\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/easy-swu-backend\" && req.workflow_run.path == \".github/workflows/publish-identity-bridge.yml\"",
         "resources": [
           {
             "apiVersion": "image.toolkit.fluxcd.io/v1",
