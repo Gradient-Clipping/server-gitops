@@ -31,6 +31,9 @@ spec:
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
+                name: status-monitor
+                optional: true
+            - secretRef:
                 name: mysql-easy-swu
             - secretRef:
                 name: easy-swu-runtime
