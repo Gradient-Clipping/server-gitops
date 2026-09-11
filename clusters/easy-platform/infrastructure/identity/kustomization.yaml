@@ -10,3 +10,4 @@ resources:
   - network-policy.yaml
   - image-automation.yaml
   - open-platform.yaml
+  - status-page.yaml

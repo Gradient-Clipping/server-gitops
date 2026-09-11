@@ -1,0 +1,21 @@
+{
+  "groups": [
+    {"id":"homepage","name":"Lazy Campus 主页","namespaces":["lazycampus-site"]},
+    {"id":"smart-shop","name":"Smart Shop","namespaces":["smart-shop"]},
+    {"id":"easy-swu","name":"Easy SWU 小程序","namespaces":["easy-swu"]},
+    {"id":"open-platform","name":"开放平台","namespaces":["open-platform"]},
+    {"id":"identity","name":"统一登录","namespaces":["identity-system"]},
+    {"id":"bbbto","name":"BBBTO","namespaces":["bbbto-mnp"]}
+  ],
+  "monitors": [
+    {"id":"homepage-web","group":"homepage","name":"网站","kind":"http","target":"https://lazycampus.com/","publicUrl":"https://lazycampus.com","public":true,"dependencies":["k8s:lazycampus-site:deployment:lazycampus-site"]},
+    {"id":"shop-web","group":"smart-shop","name":"商城网站","kind":"http","target":"https://shop.lazycampus.com/","publicUrl":"https://shop.lazycampus.com","public":true,"dependencies":["k8s:smart-shop:deployment:smart-shop-frontend"]},
+    {"id":"shop-api","group":"smart-shop","name":"业务 API","kind":"http","target":"https://shop-api.lazycampus.com/healthz","contains":"\"success\":true","description":"商品、订单与账户服务。","public":true,"dependencies":["k8s:smart-shop:deployment:smart-shop-backend","k8s:smart-shop:deployment:smart-shop-redis"]},
+    {"id":"easy-swu-api","group":"easy-swu","name":"小程序后端","kind":"http","target":"https://easy-api.lazycampus.com/api/v1/system/ready","contains":"\"status\":\"ready\"","description":"课表、成绩、考试、校园消息及生活服务接口。","public":true,"dependencies":["k8s:easy-swu:deployment:easy-swu-api","k8s:easy-swu:deployment:easy-swu-minio","k8s:easy-swu:deployment:easy-swu-redis"]},
+    {"id":"platform-web","group":"open-platform","name":"开发者控制台","kind":"http","target":"https://platform.lazycampus.com/","publicUrl":"https://platform.lazycampus.com","public":true,"dependencies":["k8s:open-platform:deployment:platform"]},
+    {"id":"platform-api","group":"open-platform","name":"开放 API 网关","kind":"http","target":"https://platform.lazycampus.com/readyz","contains":"\"status\":\"ready\"","description":"开发者应用授权与校园开放接口。","public":true,"dependencies":["k8s:open-platform:deployment:platform","k8s:open-platform:deployment:platform-redis","k8s:easy-swu:deployment:easy-swu-api"]},
+    {"id":"identity-sso","group":"identity","name":"统一身份认证","kind":"http","target":"https://auth.lazycampus.com/realms/lazycampus/.well-known/openid-configuration","contains":"\"issuer\"","public":true,"dependencies":["k8s:identity-system:deployment:keycloak"]},
+    {"id":"identity-campus","group":"identity","name":"学校账户登录","kind":"http","target":"https://auth.lazycampus.com/campus/.well-known/openid-configuration","contains":"\"issuer\"","public":true,"dependencies":["k8s:identity-system:deployment:identity-bridge"]},
+    {"id":"bbbto-web","group":"bbbto","name":"网站与服务","kind":"http","target":"https://bbbto.com/healthz","contains":"\"status\":\"ok\"","publicUrl":"https://bbbto.com","public":true,"dependencies":["k8s:bbbto-mnp:deployment:bbbto-mnp"]}
+  ]
+}

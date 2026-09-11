@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: status-page
+  namespace: status-page
+  annotations:
+    platform.lazycampus.com/domain-automation: enabled
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: status.lazycampus.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: status-page
+                port:
+                  name: http

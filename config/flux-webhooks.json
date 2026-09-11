@@ -4,14 +4,105 @@
   "secretName": "flux-github-webhook-token",
   "secretFile": "/etc/platform-secrets/flux-github-webhook-token",
   "hooks": [
-    {"name": "github-gitops", "repository": "Gradient-Clipping/server-gitops", "branch": "main", "event": "push", "resources": ["flux-system"]},
-    {"name": "github-domain-reconciler", "repository": "Gradient-Clipping/server-gitops", "branch": "main", "event": "workflow_run", "workflow": ".github/workflows/publish-domain-reconciler.yml", "resources": ["domain-reconciler"]},
-    {"name": "github-homepage", "repository": "Gradient-Clipping/lazycampus-homepage", "branch": "main", "event": "workflow_run", "workflow": ".github/workflows/publish.yml", "resources": ["lazycampus-site"]},
-    {"name": "github-bbbto", "repository": "Gradient-Clipping/bbbto-mnp", "branch": "main", "event": "workflow_run", "workflow": ".github/workflows/publish.yml", "resources": ["bbbto-mnp"]},
-    {"name": "github-smart-shop", "repository": "ystemsrx/smart-shop", "branch": "master", "event": "workflow_run", "workflow": ".github/workflows/publish.yml", "resources": ["smart-shop-backend", "smart-shop-frontend"]},
-    {"name": "github-easy-swu-api", "repository": "Gradient-Clipping/easy-swu-backend", "branch": "master", "event": "workflow_run", "workflow": ".github/workflows/publish-api.yml", "resources": ["easy-swu-api"]},
-    {"name": "github-identity-bridge", "repository": "Gradient-Clipping/easy-swu-backend", "branch": "master", "event": "workflow_run", "workflow": ".github/workflows/publish-identity-bridge.yml", "resources": ["identity-bridge"]},
-    {"name": "github-easy-swu-admin", "repository": "Gradient-Clipping/easy-swu-admin", "branch": "main", "event": "workflow_run", "workflow": ".github/workflows/publish.yml", "resources": ["easy-swu-admin"]},
-    {"name": "github-open-platform", "repository": "Gradient-Clipping/lazycampus-platform", "branch": "main", "event": "workflow_run", "workflow": ".github/workflows/publish.yml", "resources": ["lazycampus-platform"]}
+    {
+      "name": "github-gitops",
+      "repository": "Gradient-Clipping/server-gitops",
+      "branch": "main",
+      "event": "push",
+      "resources": [
+        "flux-system"
+      ]
+    },
+    {
+      "name": "github-domain-reconciler",
+      "repository": "Gradient-Clipping/server-gitops",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish-domain-reconciler.yml",
+      "resources": [
+        "domain-reconciler"
+      ]
+    },
+    {
+      "name": "github-homepage",
+      "repository": "Gradient-Clipping/lazycampus-homepage",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "lazycampus-site"
+      ]
+    },
+    {
+      "name": "github-bbbto",
+      "repository": "Gradient-Clipping/bbbto-mnp",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "bbbto-mnp"
+      ]
+    },
+    {
+      "name": "github-smart-shop",
+      "repository": "ystemsrx/smart-shop",
+      "branch": "master",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "smart-shop-backend",
+        "smart-shop-frontend"
+      ]
+    },
+    {
+      "name": "github-easy-swu-api",
+      "repository": "Gradient-Clipping/easy-swu-backend",
+      "branch": "master",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish-api.yml",
+      "resources": [
+        "easy-swu-api"
+      ]
+    },
+    {
+      "name": "github-identity-bridge",
+      "repository": "Gradient-Clipping/easy-swu-backend",
+      "branch": "master",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish-identity-bridge.yml",
+      "resources": [
+        "identity-bridge"
+      ]
+    },
+    {
+      "name": "github-easy-swu-admin",
+      "repository": "Gradient-Clipping/easy-swu-admin",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "easy-swu-admin"
+      ]
+    },
+    {
+      "name": "github-open-platform",
+      "repository": "Gradient-Clipping/lazycampus-platform",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "lazycampus-platform"
+      ]
+    },
+    {
+      "name": "github-status-page",
+      "repository": "Gradient-Clipping/lazycampus-status",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "lazycampus-status"
+      ]
+    }
   ]
 }

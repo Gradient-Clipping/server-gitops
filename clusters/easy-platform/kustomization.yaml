@@ -14,3 +14,4 @@ resources:
   - apps/headlamp
   - apps/easy-swu
   - apps/open-platform
+  - apps/status-page

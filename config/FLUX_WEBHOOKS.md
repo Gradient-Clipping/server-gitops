@@ -13,7 +13,7 @@ branches/workflows, and failed runs cannot request image reconciliation. The
 existing image policies still decide which immutable TCR version is deployable.
 The image controllers notify downstream automation when a policy changes.
 
-All nine ImagePolicy objects carry
+All ten ImagePolicy objects carry
 `platform.lazycampus.com/image-automation: platform-images`. One shared
 `ImageUpdateAutomation/flux-system/platform-images` selects that label, updates
 Setters below `clusters/easy-platform`, and commits to `server-gitops/main`.
@@ -82,8 +82,9 @@ controller administration interfaces are not exposed by this ingress.
    by periodic source/image checks; normal deployments remain event driven.
 
 No additional webhook secrets or notification steps are needed in business
-repository workflows. The catalog currently covers seven source repositories,
-eight publishing workflows, and nine image sources, including open-platform.
+repository workflows. The catalog currently covers eight source repositories,
+nine publishing workflows, and ten image sources, including open-platform and
+the public status page.
 
 ## Verification, maintenance and recovery
 
