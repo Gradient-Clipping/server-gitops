@@ -272,6 +272,50 @@ The custom CAM policy is versioned at
 `policies/tencent-domain-reconciler.json`; it contains no delete permission and
 accepts API calls only from the server's public IP.
 
+## Domain reconciliation
+
+The domain controller uses a Kubernetes Ingress LIST/WATCH. Only changes to
+managed hostnames, adoption settings, zone configuration, or the optional
+`platform.lazycampus.com/domain-reconcile-request` annotation enqueue cloud work.
+Ingress status updates and unrelated annotations do not trigger provider calls.
+Events are coalesced on a five-second local tick. Service-account tokens are
+reloaded for each connection; disconnected watches resume at the latest resource
+version, and expired versions (HTTP/event 410) trigger a fresh list. New cloud
+batches pause while the watch is disconnected or configuration is invalid.
+
+Startup and `FULL_RECONCILE_INTERVAL_SECONDS=3600` perform full drift audits.
+Cloudflare records are read once per selected zone and EdgeOne domains once per
+selected EdgeOne zone, with pagination and complete-response validation. At the
+current size (two Cloudflare zones, one EdgeOne zone, one page each), an unchanged
+audit uses three reads, or about 72 per day plus startup/events/retries. Pending
+or failed hosts alone retry after 15, 30, 60, 120, 240, then 300 seconds, with up
+to 20% jitter. HTTP 429 Retry-After and Tencent request-limit errors enforce a
+provider-wide cooldown. Ready hosts leave the retry queue.
+
+An EdgeOne domain must be online before the controller creates/updates its CNAME.
+Certificate application follows DNS convergence; a request is not completion.
+The controller waits for a deployed, unexpired certificate, and never repeatedly
+requests a certificate whose mode is already `eofreecert` or `sslcert`.
+Removing an Ingress or disabling automation only cancels local work; the existing
+adoption guard and no-automatic-deletion policy remain in effect.
+
+Inspect `reconcile_batch_completed` for the reason, selected/ready/pending/error
+counts and actual `cloud_api_calls`. Every five minutes `controller_idle_status`
+reports cumulative calls, queued hosts, readiness and the next audit. These
+status logs make no cloud requests. `/readyz` reflects valid input/watch state
+and reconciliation errors, not whether all certificates have finished applying.
+
+For an immediate scoped audit, change the following annotation on the target
+Ingress **in Git** and let Flux apply it (use a new value each time):
+
+```yaml
+platform.lazycampus.com/domain-reconcile-request: "2026-09-11T06:00:00Z"
+```
+
+The controller reads the projected zone ConfigMap locally every five seconds;
+Kubernetes projection latency may delay hot reload. No extra ConfigMap RBAC is
+required. A new controller process always reconstructs state with a full audit.
+
 ## Adding a domain
 
 1. Add the hostname and route to the application's `Ingress` in this repository.
