@@ -5,7 +5,10 @@ workflow paths, and Flux targets. `scripts/flux_webhooks.py render` generates th
 committed Receiver manifests; CI rejects a stale generated file. Adding an image
 source requires adding its publishing workflow to this catalog.
 
-GitHub sends `server-gitops/main` push events to the Git source receiver. For each
+GitHub sends only `server-gitops/production` push events to the Git source receiver.
+`main` is validated before the production ref advances; failed main changes do
+not trigger cluster reconciliation. The hourly source fallback also reads only
+production. For each
 image publisher, GitHub sends `workflow_run` events after GitHub Actions runs.
 Flux accepts only completed, successful `push` or `workflow_dispatch` runs from
 the configured source repository, branch, and workflow path. PRs, forks, other
@@ -39,7 +42,8 @@ pauses automatic image commits for every application.
 Inspect `status.observedPolicies` on `platform-images` to verify the selected
 images and `status.lastPushCommit` to trace its Git write. Validate a real
 publishing workflow after rollout: one corresponding image scan, one writer
-reconciliation/commit, then the Git push receiver and workload rollout. Changing
+reconciliation/commit to main, validation and production promotion, then the Git
+push receiver and workload rollout. Changing
 the automation configuration itself causes a one-time initial reconciliation.
 
 Traffic follows Cloudflare DNS-only CNAME -> EdgeOne HTTPS -> host Nginx HTTP ->

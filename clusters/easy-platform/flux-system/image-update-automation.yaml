@@ -4,6 +4,7 @@ metadata:
   name: platform-images
   namespace: flux-system
 spec:
+  suspend: false
   interval: 1h
   sourceRef:
     kind: GitRepository
