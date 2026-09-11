@@ -36,6 +36,9 @@ spec:
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
+                name: status-monitor
+                optional: true
+            - secretRef:
                 name: mysql-platform
             - secretRef:
                 name: platform-runtime

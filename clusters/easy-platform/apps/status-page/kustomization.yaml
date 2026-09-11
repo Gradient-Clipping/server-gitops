@@ -5,6 +5,7 @@ resources:
   - status-page.yaml
   - rbac.yaml
   - network-policy.yaml
+  - monitoring-access.yaml
   - ingress.yaml
   - image-automation.yaml
 configMapGenerator:

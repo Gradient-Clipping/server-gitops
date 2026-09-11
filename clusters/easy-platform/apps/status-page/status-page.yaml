@@ -34,6 +34,9 @@ spec:
           image: ccr.ccs.tencentyun.com/lazycampus/lazycampus-status:1.0.6 # {"$imagepolicy": "flux-system:lazycampus-status"}
           envFrom:
             - secretRef:
+                name: status-probes
+                optional: true
+            - secretRef:
                 name: mysql-status
             - secretRef:
                 name: status-runtime

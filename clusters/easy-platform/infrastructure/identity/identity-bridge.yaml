@@ -49,6 +49,9 @@ spec:
               value: "60000"
           envFrom:
             - secretRef:
+                name: status-monitor
+                optional: true
+            - secretRef:
                 name: mysql-identity-bridge
             - secretRef:
                 name: identity-bridge-runtime

@@ -1,0 +1,175 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: optional-status-reports
+  namespace: easy-swu
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: easy-swu-api
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: status-page
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: status-page
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: report-to-easy-swu
+  namespace: status-page
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: status-page
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: easy-swu
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: easy-swu-api
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: optional-status-reports
+  namespace: open-platform
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: platform
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: status-page
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: status-page
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: report-to-open-platform
+  namespace: status-page
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: status-page
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: open-platform
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: platform
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: optional-status-reports
+  namespace: smart-shop
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: smart-shop-backend
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: status-page
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: status-page
+      ports:
+        - port: 9099
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: report-to-smart-shop
+  namespace: status-page
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: status-page
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: smart-shop
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: smart-shop-backend
+      ports:
+        - port: 9099
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: optional-status-reports
+  namespace: identity-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: identity-bridge
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: status-page
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: status-page
+      ports:
+        - port: 3000
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: report-to-identity-system
+  namespace: status-page
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: status-page
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: identity-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: identity-bridge
+      ports:
+        - port: 3000
+          protocol: TCP
