@@ -14,12 +14,15 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import Counter
 from collections.abc import Iterable, Mapping
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
 MANAGED_ANNOTATION = "platform.lazycampus.com/domain-automation"
 ADOPT_ANNOTATION = "platform.lazycampus.com/domain-adopt-existing"
+REQUEST_ANNOTATION = "platform.lazycampus.com/domain-reconcile-request"
 MANAGED_VALUE = "enabled"
 TRUTHY = frozenset({"1", "true", "yes", "on", "enabled"})
 TENCENT_ENDPOINTS = {
@@ -45,6 +48,56 @@ class ReconcileError(RuntimeError):
 
 class SafetyConflict(ReconcileError):
     pass
+
+
+class RateLimited(ReconcileError):
+    def __init__(self, retry_after: float) -> None:
+        self.retry_after = retry_after
+        super().__init__("provider cooldown active")
+
+
+def safe_error(exc: Exception) -> dict[str, str]:
+    # urllib exceptions can include Authorization headers; never log their text.
+    fields = {"error_type": type(exc).__name__}
+    for key in ("code", "action"):
+        value = str(getattr(exc, key, ""))
+        if (
+            value
+            and len(value) <= 100
+            and all(c.isalnum() or c in "_.-" for c in value)
+        ):
+            fields[key] = value
+    return fields
+
+
+class CloudRequests:
+    def __init__(self) -> None:
+        self.request_counts: Counter[str] = Counter()
+        self.cooldown_until = 0.0
+
+    def before_request(self, action: str) -> None:
+        remaining = self.cooldown_until - time.monotonic()
+        if remaining > 0:
+            raise RateLimited(remaining)
+        self.request_counts[action] += 1
+
+    def throttle(self, header: str | None = None) -> None:
+        delay = 60.0
+        if header:
+            try:
+                delay = max(1.0, float(header))
+            except ValueError:
+                try:
+                    delay = max(
+                        1.0,
+                        (
+                            parsedate_to_datetime(header) - dt.datetime.now(dt.UTC)
+                        ).total_seconds(),
+                    )
+                except (ValueError, TypeError, OverflowError):
+                    pass
+        self.cooldown_until = time.monotonic() + delay
+        raise RateLimited(delay)
 
 
 class TencentApiError(ReconcileError):
@@ -93,6 +146,13 @@ class DesiredHost:
     zone: ZoneConfig
     adopt_existing: bool
     ingress: str
+    reconcile_request: str = ""
+
+
+@dataclasses.dataclass(frozen=True)
+class HostResult:
+    state: str  # ready, pending, error
+    retry_after: float = 0
 
 
 def normalize_hostname(value: str) -> str:
@@ -118,8 +178,10 @@ def record_name(hostname: str, zone_domain: str) -> str:
     return hostname[: -len(suffix)]
 
 
-def load_zones(path: str | Path) -> tuple[ZoneConfig, ...]:
-    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+def load_zones(
+    path: str | Path, *, content: bytes | None = None
+) -> tuple[ZoneConfig, ...]:
+    raw = json.loads(content if content is not None else Path(path).read_bytes())
     zones: list[ZoneConfig] = []
     for item in raw.get("zones", []):
         domain = normalize_hostname(str(item["domain"]))
@@ -192,7 +254,7 @@ class KubernetesIngressSource:
         port = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
         self.base_url = f"https://{host}:{port}"
         service_account = Path("/var/run/secrets/kubernetes.io/serviceaccount")
-        self.token = (service_account / "token").read_text(encoding="utf-8").strip()
+        self.token_path = service_account / "token"
         self.context = ssl.create_default_context(
             cafile=str(service_account / "ca.crt")
         )
@@ -200,22 +262,25 @@ class KubernetesIngressSource:
         self.adopt_annotation = adopt_annotation
         self.timeout = timeout
 
-    def _get_json(self, path: str) -> Mapping[str, Any]:
-        request = urllib.request.Request(
+    def _request(self, path: str) -> urllib.request.Request:
+        return urllib.request.Request(
             f"{self.base_url}{path}",
             headers={
-                "Authorization": f"Bearer {self.token}",
+                "Authorization": f"Bearer {self.token_path.read_text(encoding='utf-8').strip()}",
                 "Accept": "application/json",
             },
         )
+
+    def _get_json(self, path: str) -> Mapping[str, Any]:
         with urllib.request.urlopen(
-            request, context=self.context, timeout=self.timeout
+            self._request(path), context=self.context, timeout=self.timeout
         ) as response:
             return json.load(response)
 
-    def list_desired_hosts(self, zones: tuple[ZoneConfig, ...]) -> list[DesiredHost]:
+    def list_snapshot(self) -> tuple[list[Mapping[str, Any]], str]:
         items: list[Mapping[str, Any]] = []
         continuation = ""
+        version = ""
         while True:
             query = {"limit": "500"}
             if continuation:
@@ -223,11 +288,28 @@ class KubernetesIngressSource:
             payload = self._get_json(
                 "/apis/networking.k8s.io/v1/ingresses?" + urllib.parse.urlencode(query)
             )
-            items.extend(payload.get("items", []))
+            batch = payload.get("items")
+            page_version = str(payload.get("metadata", {}).get("resourceVersion", ""))
+            if (
+                not isinstance(batch, list)
+                or not page_version
+                or (version and version != page_version)
+            ):
+                raise ReconcileError("invalid or inconsistent Ingress list snapshot")
+            version = page_version
+            items.extend(batch)
             continuation = str(payload.get("metadata", {}).get("continue", ""))
             if not continuation:
                 break
+        return items, version
 
+    def list_desired_hosts(self, zones: tuple[ZoneConfig, ...]) -> list[DesiredHost]:
+        items, _ = self.list_snapshot()
+        return self.desired_hosts(items, zones)
+
+    def desired_hosts(
+        self, items: Iterable[Mapping[str, Any]], zones: tuple[ZoneConfig, ...]
+    ) -> list[DesiredHost]:
         desired: dict[str, DesiredHost] = {}
         for item in items:
             metadata = item.get("metadata", {})
@@ -248,6 +330,7 @@ class KubernetesIngressSource:
                     zone=select_zone(hostname, zones),
                     adopt_existing=adopt,
                     ingress=source,
+                    reconcile_request=str(annotations.get(REQUEST_ANNOTATION, "")),
                 )
                 previous = desired.get(hostname)
                 if previous and previous != candidate:
@@ -259,8 +342,9 @@ class KubernetesIngressSource:
         return [desired[key] for key in sorted(desired)]
 
 
-class TencentCloudClient:
+class TencentCloudClient(CloudRequests):
     def __init__(self, secret_id: str, secret_key: str, timeout: float = 15) -> None:
+        super().__init__()
         self.secret_id = secret_id
         self.secret_key = secret_key
         self.timeout = timeout
@@ -317,15 +401,22 @@ class TencentCloudClient:
             method="POST",
         )
         try:
+            self.before_request("edgeone." + action)
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 document = json.load(response)
         except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                self.throttle(exc.headers.get("Retry-After"))
             try:
                 document = json.loads(exc.read().decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
                 raise TencentApiError(action, f"HTTP_{exc.code}", str(exc)) from exc
-        response = document.get("Response", {})
+        response = document.get("Response") if isinstance(document, Mapping) else None
+        if not isinstance(response, Mapping):
+            raise TencentApiError(action, "INVALID_RESPONSE", "missing response object")
         if error := response.get("Error"):
+            if str(error.get("Code", "")).startswith("RequestLimitExceeded"):
+                self.throttle()
             raise TencentApiError(
                 action,
                 str(error.get("Code", "Unknown")),
@@ -335,8 +426,9 @@ class TencentCloudClient:
         return response
 
 
-class CloudflareClient:
+class CloudflareClient(CloudRequests):
     def __init__(self, api_token: str, timeout: float = 15) -> None:
+        super().__init__()
         self.api_token = api_token
         self.timeout = timeout
 
@@ -366,9 +458,12 @@ class CloudflareClient:
             method=method,
         )
         try:
+            self.before_request("cloudflare." + action)
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 document = json.load(response)
         except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                self.throttle(exc.headers.get("Retry-After"))
             try:
                 document = json.loads(exc.read().decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
@@ -392,26 +487,61 @@ class CloudflareClient:
             raise CloudflareApiError(action, code, message)
         return document
 
-    def list_dns_records(self, zone_id: str, hostname: str) -> list[Mapping[str, Any]]:
+    def list_dns_records(
+        self, zone_id: str, hostname: str | None = None
+    ) -> list[Mapping[str, Any]]:
         records: list[Mapping[str, Any]] = []
+        record_ids: set[str] = set()
         page = 1
         while True:
+            query: dict[str, Any] = {"page": page, "per_page": 100}
+            if hostname is not None:
+                query["name.exact"] = hostname
             document = self._request(
                 "ListDnsRecords",
                 "GET",
                 f"/zones/{zone_id}/dns_records",
-                query={"name.exact": hostname, "page": page, "per_page": 100},
+                query=query,
             )
-            batch = document.get("result") or []
-            if not isinstance(batch, list):
+            batch = document.get("result")
+            if not isinstance(batch, list) or any(
+                not isinstance(item, Mapping)
+                or not item.get("name")
+                or not item.get("id")
+                or not item.get("type")
+                for item in batch
+            ):
                 raise CloudflareApiError(
                     "ListDnsRecords", "INVALID_RESPONSE", "result is not a list"
                 )
-            records.extend(item for item in batch if isinstance(item, Mapping))
+            for item in batch:
+                record_id = str(item["id"])
+                if record_id in record_ids:
+                    raise CloudflareApiError(
+                        "ListDnsRecords",
+                        "INCOMPLETE_RESPONSE",
+                        "duplicate record across pages",
+                    )
+                record_ids.add(record_id)
+            records.extend(batch)
             result_info = document.get("result_info") or {}
-            total_pages = int(result_info.get("total_pages", page))
-            if page >= total_pages or not batch:
+            if "total_pages" not in result_info or "total_count" not in result_info:
+                raise CloudflareApiError(
+                    "ListDnsRecords", "INVALID_RESPONSE", "missing pagination"
+                )
+            total_pages = int(result_info["total_pages"])
+            if page >= total_pages:
+                if len(records) != int(result_info["total_count"]):
+                    raise CloudflareApiError(
+                        "ListDnsRecords",
+                        "INCOMPLETE_RESPONSE",
+                        "record count changed during listing",
+                    )
                 return records
+            if not batch:
+                raise CloudflareApiError(
+                    "ListDnsRecords", "INCOMPLETE_RESPONSE", "empty intermediate page"
+                )
             page += 1
 
     def create_dns_record(
@@ -448,36 +578,75 @@ class DomainReconciler:
         self.dry_run = dry_run
 
     def reconcile(self, desired_hosts: Iterable[DesiredHost]) -> int:
-        hosts = list(desired_hosts)
-        edge_cache: dict[str, dict[str, Mapping[str, Any]]] = {}
-        for zone in {item.zone for item in hosts if item.zone.mode == "edgeone"}:
-            edge_cache[zone.domain] = self._list_edge_domains(zone)
+        return sum(
+            result.state == "error"
+            for result in self.reconcile_batch(desired_hosts).values()
+        )
 
-        errors = 0
+    def request_counts(self) -> Counter[str]:
+        return Counter(getattr(self.tencent, "request_counts", {})) + Counter(
+            getattr(self.dns, "request_counts", {})
+        )
+
+    def reconcile_batch(
+        self, desired_hosts: Iterable[DesiredHost]
+    ) -> dict[str, HostResult]:
+        hosts = list(desired_hosts)
+        # Snapshots live for one batch only: retries and hourly audits see fresh cloud state.
+        snapshots: dict[
+            ZoneConfig,
+            tuple[dict[str, list[Mapping[str, Any]]], dict[str, Mapping[str, Any]]]
+            | Exception,
+        ] = {}
+        for zone in dict.fromkeys(item.zone for item in hosts):
+            try:
+                records: dict[str, list[Mapping[str, Any]]] = {}
+                for record in self.dns.list_dns_records(zone.cloudflare_zone_id):
+                    name = str(record["name"]).lower().rstrip(".")
+                    records.setdefault(name, []).append(record)
+                domains = (
+                    self._list_edge_domains(zone) if zone.mode == "edgeone" else {}
+                )
+                snapshots[zone] = records, domains
+            except Exception as exc:
+                snapshots[zone] = exc
+
+        results: dict[str, HostResult] = {}
         for desired in hosts:
             try:
+                snapshot = snapshots[desired.zone]
+                if isinstance(snapshot, Exception):
+                    raise snapshot
+                records, domains = snapshot
+                host_records = records.get(desired.hostname, [])
                 if desired.zone.mode == "edgeone":
-                    self._reconcile_edgeone(desired, edge_cache[desired.zone.domain])
+                    ready = self._reconcile_edgeone(desired, domains, host_records)
                 else:
-                    self._ensure_dns(desired, "A", desired.zone.origin)
+                    ready = self._ensure_dns(
+                        desired, "A", desired.zone.origin, host_records
+                    )
             except Exception as exc:  # noqa: BLE001 - isolate one bad host from the remaining hosts
-                errors += 1
+                results[desired.hostname] = HostResult(
+                    "error", getattr(exc, "retry_after", 0)
+                )
                 log(
                     "error",
                     "host_reconcile_failed",
                     hostname=desired.hostname,
                     ingress=desired.ingress,
-                    error=str(exc),
+                    **safe_error(exc),
                 )
             else:
+                results[desired.hostname] = HostResult("ready" if ready else "pending")
                 log(
                     "info",
                     "host_reconciled",
                     hostname=desired.hostname,
                     mode=desired.zone.mode,
                     ingress=desired.ingress,
+                    state=results[desired.hostname].state,
                 )
-        return errors
+        return results
 
     def _list_edge_domains(self, zone: ZoneConfig) -> dict[str, Mapping[str, Any]]:
         assert zone.edgeone_zone_id
@@ -489,18 +658,39 @@ class DomainReconciler:
                 "DescribeAccelerationDomains",
                 {"ZoneId": zone.edgeone_zone_id, "Offset": offset, "Limit": 200},
             )
-            batch = response.get("AccelerationDomains") or []
+            batch = response.get("AccelerationDomains")
+            if not isinstance(batch, list) or "TotalCount" not in response:
+                raise TencentApiError(
+                    "DescribeAccelerationDomains",
+                    "INVALID_RESPONSE",
+                    "missing domain list or count",
+                )
             for item in batch:
                 hostname = normalize_hostname(str(item["DomainName"]))
                 result[hostname] = item
             offset += len(batch)
-            if not batch or offset >= int(response.get("TotalCount", offset)):
+            if offset >= int(response["TotalCount"]):
+                if len(result) != int(response["TotalCount"]):
+                    raise TencentApiError(
+                        "DescribeAccelerationDomains",
+                        "INCOMPLETE_RESPONSE",
+                        "domain count changed during listing",
+                    )
                 break
+            if not batch:
+                raise TencentApiError(
+                    "DescribeAccelerationDomains",
+                    "INCOMPLETE_RESPONSE",
+                    "empty intermediate page",
+                )
         return result
 
     def _reconcile_edgeone(
-        self, desired: DesiredHost, domains: dict[str, Mapping[str, Any]]
-    ) -> None:
+        self,
+        desired: DesiredHost,
+        domains: dict[str, Mapping[str, Any]],
+        records: list[Mapping[str, Any]] | None = None,
+    ) -> bool:
         zone = desired.zone
         assert zone.edgeone_zone_id
         existing = domains.get(desired.hostname)
@@ -524,7 +714,7 @@ class DomainReconciler:
                 event="edge_domain_created",
                 hostname=desired.hostname,
             )
-            return
+            return False
 
         drift = self._edge_origin_drift(desired, existing)
         if drift:
@@ -536,7 +726,7 @@ class DomainReconciler:
                     hostname=desired.hostname,
                     status=status,
                 )
-                return
+                return False
             payload = {
                 "ZoneId": zone.edgeone_zone_id,
                 "DomainName": desired.hostname,
@@ -557,7 +747,7 @@ class DomainReconciler:
                 hostname=desired.hostname,
                 fields=drift,
             )
-            return
+            return False
 
         status = str(existing.get("DomainStatus", "")).lower()
         if status != "online":
@@ -567,7 +757,7 @@ class DomainReconciler:
                 hostname=desired.hostname,
                 status=status or "unknown",
             )
-            return
+            return False
 
         cname = str(existing.get("Cname", "")).strip().rstrip(".")
         if not cname:
@@ -577,8 +767,12 @@ class DomainReconciler:
                 hostname=desired.hostname,
                 status=status,
             )
-            return
-        dns_ready = self._ensure_dns(desired, "CNAME", cname)
+            return False
+        dns_ready = self._ensure_dns(desired, "CNAME", cname, records)
+        if not dns_ready:
+            return False
+        if not zone.certificate_mode:
+            return True
         certificate = existing.get("Certificate") or {}
         current_mode = str(certificate.get("Mode", "")).lower()
         if (
@@ -598,6 +792,31 @@ class DomainReconciler:
                 hostname=desired.hostname,
                 mode=zone.certificate_mode,
             )
+            return False
+        if self._certificate_ready(certificate):
+            return True
+        log(
+            "info",
+            "edge_certificate_waiting",
+            hostname=desired.hostname,
+            mode=current_mode,
+        )
+        return False
+
+    @staticmethod
+    def _certificate_ready(certificate: Mapping[str, Any]) -> bool:
+        for cert in certificate.get("List") or []:
+            if str(cert.get("Status", "")).lower() != "deployed":
+                continue
+            try:
+                expires = dt.datetime.fromisoformat(
+                    str(cert["ExpireTime"]).replace("Z", "+00:00")
+                )
+                if expires.tzinfo is not None and expires > dt.datetime.now(dt.UTC):
+                    return True
+            except (KeyError, ValueError, TypeError):
+                continue
+        return False
 
     @staticmethod
     def _edge_origin_drift(
@@ -633,9 +852,18 @@ class DomainReconciler:
             drift.append("ipv6Status")
         return drift
 
-    def _ensure_dns(self, desired: DesiredHost, record_type: str, value: str) -> bool:
+    def _ensure_dns(
+        self,
+        desired: DesiredHost,
+        record_type: str,
+        value: str,
+        records: list[Mapping[str, Any]] | None = None,
+    ) -> bool:
         zone = desired.zone
-        records = self.dns.list_dns_records(zone.cloudflare_zone_id, desired.hostname)
+        if records is None:
+            records = self.dns.list_dns_records(
+                zone.cloudflare_zone_id, desired.hostname
+            )
         mutable = [
             record
             for record in records
@@ -781,46 +1009,14 @@ def require_env(name: str) -> str:
     return value
 
 
-def run_loop(
-    source: KubernetesIngressSource,
-    reconciler: DomainReconciler,
-    zones: tuple[ZoneConfig, ...],
-    state: HealthState,
-    stop: threading.Event,
-    interval: int,
-    run_once: bool,
-) -> None:
-    while not stop.is_set():
-        try:
-            desired = source.list_desired_hosts(zones)
-            if not desired:
-                raise ReconcileError("no opted-in Ingress hosts were found")
-            errors = reconciler.reconcile(desired)
-            state.set_ready(errors == 0)
-            log(
-                "info" if errors == 0 else "error",
-                "reconcile_cycle_completed",
-                desired_hosts=len(desired),
-                errors=errors,
-                dry_run=reconciler.dry_run,
-            )
-        except Exception as exc:  # noqa: BLE001 - a failed cycle must not terminate the controller
-            state.set_ready(False)
-            log("error", "reconcile_cycle_failed", error=str(exc))
-        if run_once:
-            return
-        stop.wait(interval)
-
-
 def main() -> None:
     try:
-        zones = load_zones(
-            os.environ.get("CONFIG_PATH", "/etc/domain-reconciler/zones.json")
-        )
+        config_path = os.environ.get("CONFIG_PATH", "/etc/domain-reconciler/zones.json")
+        zones = load_zones(config_path)
         timeout = float(os.environ.get("HTTP_TIMEOUT_SECONDS", "15"))
-        interval = int(os.environ.get("RECONCILE_INTERVAL_SECONDS", "60"))
-        if interval < 30:
-            raise ReconcileError("RECONCILE_INTERVAL_SECONDS must be at least 30")
+        interval = int(os.environ.get("FULL_RECONCILE_INTERVAL_SECONDS", "3600"))
+        if interval < 300:
+            raise ReconcileError("FULL_RECONCILE_INTERVAL_SECONDS must be at least 300")
         tencent_client = TencentCloudClient(
             require_env("TENCENTCLOUD_SECRET_ID"),
             require_env("TENCENTCLOUD_SECRET_KEY"),
@@ -834,7 +1030,7 @@ def main() -> None:
             tencent_client, dns_client, dry_run=env_bool("DRY_RUN")
         )
     except Exception as exc:
-        log("critical", "startup_failed", error=str(exc))
+        log("critical", "startup_failed", **safe_error(exc))
         raise SystemExit(1) from exc
 
     state = HealthState()
@@ -847,12 +1043,20 @@ def main() -> None:
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
-    log("info", "controller_started", zones=[zone.domain for zone in zones])
+    log(
+        "info",
+        "controller_started",
+        mode="ingress_watch",
+        full_reconcile_interval_seconds=interval,
+        zones=[zone.domain for zone in zones],
+    )
     try:
-        run_loop(
+        from .runtime import run_controller
+
+        run_controller(
             source,
             reconciler,
-            zones,
+            config_path,
             state,
             stop,
             interval,
