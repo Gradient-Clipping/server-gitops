@@ -44,7 +44,9 @@ jobs:
           python -m unittest discover -s scripts/tests -v
 
       - name: Validate host scripts
-        run: bash -n scripts/*.sh
+        run: |
+          for script in scripts/*.sh; do bash -n "$script"; done
+          python -m py_compile scripts/*.py
 
   promote:
     name: Promote validated production revision

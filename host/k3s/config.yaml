@@ -7,6 +7,11 @@ node-name: easy-platform-1
 node-label:
   - platform.easy-swu.dev/role=core
 kubelet-arg:
+  # Single-node control plane: reserve measured daemon usage plus headroom.
+  - kube-reserved=cpu=250m,memory=1280Mi,ephemeral-storage=1Gi
+  - system-reserved=cpu=250m,memory=512Mi,ephemeral-storage=1Gi
+  # Specify every default disk threshold when overriding memory eviction.
+  - eviction-hard=memory.available<500Mi,nodefs.available<10%,nodefs.inodesFree<5%,imagefs.available<15%,imagefs.inodesFree<5%
   - image-gc-high-threshold=75
   - image-gc-low-threshold=60
 kube-proxy-arg:

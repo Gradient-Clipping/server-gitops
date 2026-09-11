@@ -1,0 +1,70 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mysql-host-maintenance-preflight-20260912
+  namespace: mysql-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mysql-host-maintenance-preflight
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: verify
+          image: ccr.ccs.tencentyun.com/lazycampus/mysql:8.4.11@sha256:d0ecae406d2e315d9e025055802b4570e471b5ca3f25bc90d696930755b11742
+          command: [/bin/bash, /candidate/verify.sh]
+          env:
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_BACKUP_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: candidate
+              mountPath: /candidate
+              readOnly: true
+            - name: backups
+              mountPath: /backups
+            - name: restore
+              mountPath: /restore
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: candidate
+          configMap:
+            name: mysql-host-maintenance-preflight
+        - name: backups
+          persistentVolumeClaim:
+            claimName: mysql-backups
+        - name: restore
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi
