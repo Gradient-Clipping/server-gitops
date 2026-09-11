@@ -6,7 +6,6 @@ resources:
   - flux-system/webhooks
   - infrastructure/ingress
   - infrastructure/mysql
-  - maintenance/mysql-memory-preflight
   - infrastructure/identity
   - infrastructure/domain-automation
   - apps/lazycampus-site
