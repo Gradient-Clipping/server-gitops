@@ -60,7 +60,10 @@ if ! MYSQL_PWD= mysql --protocol=socket --socket="${socket}" --user=root \
 fi
 MYSQL_PWD= mysql --protocol=socket --socket="${socket}" --user=root \
   --batch --skip-column-names --execute="${inventory}" >/tmp/restored-tables.tsv
-diff -u /tmp/source-tables.tsv /tmp/restored-tables.tsv
+if [[ "$(cat /tmp/source-tables.tsv)" != "$(cat /tmp/restored-tables.tsv)" ]]; then
+  echo 'Restored database/table inventory differs from the source.' >&2
+  exit 1
+fi
 if ! MYSQL_PWD= mysqlcheck --protocol=socket --socket="${socket}" --user=root \
   --check --all-databases >/tmp/table-check.log 2>&1; then
   echo 'Restored table integrity check failed.' >&2
