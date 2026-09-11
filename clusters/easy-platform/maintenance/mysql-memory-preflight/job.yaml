@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mysql-memory-preflight-20260911-v2
+  name: mysql-memory-preflight-20260911-v3
   namespace: mysql-system
 spec:
   backoffLimit: 0

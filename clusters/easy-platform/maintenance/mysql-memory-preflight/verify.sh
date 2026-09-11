@@ -67,6 +67,8 @@ fi
 if ! MYSQL_PWD= mysqlcheck --protocol=socket --socket="${socket}" --user=root \
   --check --all-databases >/tmp/table-check.log 2>&1; then
   echo 'Restored table integrity check failed.' >&2
+  # mysqlcheck reports table names/status, not application row contents.
+  grep -v '[[:space:]]OK$' /tmp/table-check.log >&2 || true
   exit 1
 fi
 echo 'Restored database/table inventory:'
