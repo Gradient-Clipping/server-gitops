@@ -1,0 +1,7 @@
+{
+  "repository": "Gradient-Clipping/server-gitops",
+  "sourceBranch": "main",
+  "productionBranch": "production",
+  "validationWorkflow": ".github/workflows/validate.yml",
+  "validationJob": "validate"
+}

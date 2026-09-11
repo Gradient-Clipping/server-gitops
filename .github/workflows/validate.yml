@@ -43,8 +43,28 @@ jobs:
           python scripts/flux_webhooks.py check
           python -m unittest discover -s scripts/tests -v
 
-      - name: Build domain reconciler image
-        run: docker build --tag domain-reconciler:verify controller/domain-reconciler
-
       - name: Validate host scripts
         run: bash -n scripts/*.sh
+
+  promote:
+    name: Promote validated production revision
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: gitops-production-promotion
+      cancel-in-progress: false
+    steps:
+      - name: Check out the validated revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Promote without force or stale revisions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/production_gate.py
