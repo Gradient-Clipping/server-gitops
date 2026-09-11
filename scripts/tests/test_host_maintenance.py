@@ -14,6 +14,14 @@ spec.loader.exec_module(maintenance)
 
 
 class MaintenanceTests(unittest.TestCase):
+    def test_catchup_pins_versions_and_prevents_removal(self):
+        command=maintenance.security_command([{'name':'openssl','candidate':'3.0.2-0ubuntu1.29'}])
+        self.assertIn('openssl=3.0.2-0ubuntu1.29',command)
+        self.assertIn('--no-remove',command)
+        self.assertIn('Dpkg::Options::=--force-confold',command)
+        with self.assertRaises(ValueError):
+            maintenance.security_command([{'name':'docker-ce','candidate':'29'}])
+
     @unittest.skipIf(os.name=='nt','Unix socket fixture is checked on the host-compatible Linux CI')
     def test_copy_excludes_runtime_socket(self):
         with tempfile.TemporaryDirectory() as temporary, closing(socket.socket(socket.AF_UNIX)) as sock:

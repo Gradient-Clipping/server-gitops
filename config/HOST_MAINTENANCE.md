@@ -10,7 +10,9 @@ These are scheduling reservations; no unsupported host cgroup enforcement is add
 The old unattended-upgrades file enabled only the original jammy release pocket;
 jammy-security was commented out. `host/apt/99-platform-security` restores security
 origins, keeps daily timers, excludes separately maintained infrastructure packages,
-and disables automatic reboot and kernel/package removal. The existing kernel is
+and disables automatic reboot and kernel/package removal. Modified configuration
+files are preserved with force-confdef/force-confold; review vendor `.dpkg-dist`
+files through Git during maintenance. The existing kernel is
 retained for recovery. Future kernel updates still need a planned reboot.
 
 Use `scripts/run_host_maintenance.py` from the operator workstation with the
@@ -38,9 +40,14 @@ over SSH and leaves GitHub management credentials on the workstation.
    or plaintext recovery material into Git. The artifact directory and server
    timestamp directory identify the exact recovery bundle.
 6. Run `apply`: validate backup/offsite proof, apply the managed security policy,
-   update Ubuntu security packages without package removals, check dpkg/Nginx and
+   select exact Ubuntu security candidate versions, simulate the batch and reject
+   infrastructure upgrades/removals, install it once, then check dpkg/Nginx and
    remaining eligible updates, and stage the K3s configuration. Timers resume on
    success or failure. Root-only `security-upgrade.log` contains package diagnostics.
+   The one-time backlog uses APT's batch solver to avoid unattended-upgrade's slow
+   per-package fallback and configuration prompts; daily security updates retain
+   unattended-upgrades. Let an existing update finish before starting another
+   maintenance phase; never terminate dpkg during installation.
 7. Run `reboot`, then `postcheck` after SSH returns. Verify the new kernel, node
    allocatable resources, actual kubelet reservations/eviction, all workloads,
    production reconciliation and public service checks. Do not report completion
