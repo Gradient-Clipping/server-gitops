@@ -81,6 +81,21 @@ def packages():
     return {'eligible': eligible, 'excluded': excluded}
 
 
+def special_files(parent, names):
+    # Sockets/FIFOs/device nodes are process state, not recoverable file content.
+    return [name for name in names if not any((
+        (Path(parent)/name).is_file(), (Path(parent)/name).is_dir(),
+        (Path(parent)/name).is_symlink()))]
+
+
+def cleanup_staging(path):
+    staging = path/'staging'
+    if path.parent != BASE or staging.is_symlink() or staging.resolve() != path/'staging':
+        raise ValueError('Staging cleanup boundary failed')
+    if staging.exists():
+        shutil.rmtree(staging)
+
+
 def backup(path):
     job = kube('-n', 'mysql-system', 'get', 'job', JOB)
     if job.get('status', {}).get('succeeded') != 1:
@@ -102,7 +117,7 @@ def backup(path):
     staging = path / 'staging'
     staging.mkdir(mode=0o700)
     def ignore(parent, names):
-        return [n for n in names if n.endswith(('-wal', '-shm', '.log')) or (parent == '/srv/k3s-data' and n == 'mysql')]
+        return special_files(parent,names)+[n for n in names if n.endswith(('-wal', '-shm', '.log')) or (parent == '/srv/k3s-data' and n == 'mysql')]
     shutil.copytree('/srv/k3s-data', staging/'srv/k3s-data', symlinks=True, ignore=ignore)
     sqlite_paths = []
     for source in Path('/srv/k3s-data').rglob('*'):
@@ -112,13 +127,18 @@ def backup(path):
             sqlite_copy(source, target)
             sqlite_paths.append(target.relative_to(staging).as_posix())
     shutil.copytree('/var/lib/rancher/k3s/server', staging/'var/lib/rancher/k3s/server',
-                    symlinks=True, ignore=lambda parent,names: ['db'] if parent == '/var/lib/rancher/k3s/server' else [])
+                    symlinks=True, ignore=lambda parent,names: special_files(parent,names)+(['db'] if parent == '/var/lib/rancher/k3s/server' else []))
     database = Path('/var/lib/rancher/k3s/server/db/state.db')
     sqlite_copy(database, staging / database.relative_to('/'))
     sqlite_paths.append(database.relative_to('/').as_posix())
-    for source in ['/etc/rancher','/etc/platform-secrets','/etc/nginx','/etc/letsencrypt','/etc/apt/apt.conf.d','/etc/systemd/system','/etc/ssh']:
+    for source in ['/etc/rancher','/etc/platform-secrets','/etc/nginx','/etc/letsencrypt','/etc/apt/apt.conf.d','/etc/systemd/system','/etc/ssh','/etc/default','/etc/netplan']:
         if Path(source).exists():
-            shutil.copytree(source, staging/Path(source).relative_to('/'), symlinks=True)
+            shutil.copytree(source, staging/Path(source).relative_to('/'), symlinks=True,ignore=special_files)
+    for source in ['/etc/fstab','/etc/hosts','/etc/hostname','/boot/grub/grub.cfg','/var/lib/dpkg/status']:
+        if Path(source).is_file():
+            target=staging/Path(source).relative_to('/')
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(source,target)
     (staging / KEY.relative_to('/')).unlink(missing_ok=True)
     shutil.copy2(dump, staging / 'mysql-verified.sql')
     (staging/'packages.tsv').write_text(run(['dpkg-query','-W','-f=${Package}\t${Version}\n']))
@@ -137,9 +157,7 @@ def backup(path):
     save(path, {'createdAt':now(),'archiveSha256':sha(archive),'files':hashes,'sqlite':sqlite_paths,
                 'mysqlRestoreJob':JOB,'mysqlDumpSha256':match[1],'kernelBefore':run(['uname','-r']).strip()})
     verify(path)
-    if staging.parent != path or path.parent != BASE:
-        raise ValueError('Staging cleanup boundary failed')
-    shutil.rmtree(staging)
+    cleanup_staging(path)
     print(json.dumps({'backup':str(path),'sha256':sha(archive),'restoredFiles':len(hashes),'sqliteChecks':len(sqlite_paths)}))
 
 
@@ -226,7 +244,7 @@ def apply(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('phase',choices=['plan','backup','verify','confirm-offsite','apply','reboot','postcheck'])
+    parser.add_argument('phase',choices=['plan','backup','verify','cleanup-staging','confirm-offsite','apply','reboot','postcheck'])
     parser.add_argument('--directory',required=True,type=directory)
     parser.add_argument('--sha256')
     args = parser.parse_args()
@@ -241,6 +259,9 @@ def main():
     elif args.phase == 'verify':
         verify(path)
         print('Encrypted backup, all files and restored SQLite databases verified.')
+    elif args.phase == 'cleanup-staging':
+        cleanup_staging(path)
+        print('Only the named maintenance staging directory was removed.')
     elif args.phase == 'confirm-offsite':
         record = state(path)
         if args.sha256 != record['archiveSha256']:

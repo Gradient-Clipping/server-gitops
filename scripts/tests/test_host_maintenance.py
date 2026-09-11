@@ -2,6 +2,8 @@ import importlib.util
 from contextlib import closing
 from pathlib import Path
 import sqlite3
+import os
+import socket
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -12,6 +14,13 @@ spec.loader.exec_module(maintenance)
 
 
 class MaintenanceTests(unittest.TestCase):
+    @unittest.skipIf(os.name=='nt','Unix socket fixture is checked on the host-compatible Linux CI')
+    def test_copy_excludes_runtime_socket(self):
+        with tempfile.TemporaryDirectory() as temporary, closing(socket.socket(socket.AF_UNIX)) as sock:
+            sock.bind(str(Path(temporary)/'kine.sock'))
+            (Path(temporary)/'state.db').write_text('file content')
+            self.assertEqual(maintenance.special_files(temporary,['kine.sock','state.db']),['kine.sock'])
+
     def test_hash_works_on_host_python(self):
         with tempfile.TemporaryDirectory() as temporary:
             path=Path(temporary)/'content'
