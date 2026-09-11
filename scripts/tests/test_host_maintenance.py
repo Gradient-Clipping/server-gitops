@@ -12,6 +12,12 @@ spec.loader.exec_module(maintenance)
 
 
 class MaintenanceTests(unittest.TestCase):
+    def test_hash_works_on_host_python(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path=Path(temporary)/'content'
+            path.write_bytes(b'abc')
+            self.assertEqual(maintenance.sha(path),'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+
     def test_rejects_paths_outside_backup_root(self):
         for value in ['/srv/k3s-data', '/srv/k3s-backups/maintenance/../mysql', '/']:
             with self.assertRaises(ValueError):

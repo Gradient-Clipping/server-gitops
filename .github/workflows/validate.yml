@@ -48,6 +48,13 @@ jobs:
           for script in scripts/*.sh; do bash -n "$script"; done
           python -m py_compile scripts/*.py
 
+      - name: Match the Ubuntu 22.04 host Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+      - name: Test host runtime compatibility
+        run: python -m unittest discover -s scripts/tests -p test_host_maintenance.py -v
+
   promote:
     name: Promote validated production revision
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
