@@ -64,13 +64,33 @@ if [[ "$(cat /tmp/source-tables.tsv)" != "$(cat /tmp/restored-tables.tsv)" ]]; t
   echo 'Restored database/table inventory differs from the source.' >&2
   exit 1
 fi
-if ! MYSQL_PWD= mysqlcheck --protocol=socket --socket="${socket}" --user=root \
-  --check --all-databases >/tmp/table-check.log 2>&1; then
+# The minimal production image provides mysql but not mysqlcheck.
+MYSQL_PWD= mysql --protocol=socket --socket="${socket}" --user=root \
+  --batch --raw --skip-column-names >/tmp/table-check.sql <<'SQL'
+SELECT CONCAT('CHECK TABLE `', REPLACE(TABLE_SCHEMA,'`','``'), '`.`',
+  REPLACE(TABLE_NAME,'`','``'), '`;')
+FROM information_schema.tables
+WHERE TABLE_SCHEMA NOT IN ('information_schema','performance_schema','sys')
+  AND TABLE_TYPE='BASE TABLE'
+ORDER BY TABLE_SCHEMA,TABLE_NAME;
+SQL
+if ! MYSQL_PWD= mysql --protocol=socket --socket="${socket}" --user=root \
+  --batch --raw --skip-column-names </tmp/table-check.sql >/tmp/table-check.log 2>&1; then
   echo 'Restored table integrity check failed.' >&2
-  # mysqlcheck reports table names/status, not application row contents.
-  grep -v '[[:space:]]OK$' /tmp/table-check.log >&2 || true
   exit 1
 fi
+check_failed=false
+checked_tables=0
+while IFS=$'\t' read -r table operation message_type message; do
+  if [[ "${message_type}" == error ]]; then
+    printf '%s: %s\n' "${table}" "${message}" >&2
+    check_failed=true
+  elif [[ "${message_type}" == status && "${message}" == OK ]]; then
+    checked_tables=$((checked_tables + 1))
+  fi
+done </tmp/table-check.log
+[[ "${check_failed}" == false && "${checked_tables}" -gt 0 ]]
+printf 'Restored tables passing CHECK TABLE: %s\n' "${checked_tables}"
 echo 'Restored database/table inventory:'
 cat /tmp/restored-tables.tsv
 MYSQL_PWD= mysql --protocol=socket --socket="${socket}" --user=root --batch \
