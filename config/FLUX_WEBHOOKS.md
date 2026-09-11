@@ -45,6 +45,8 @@ controller administration interfaces are not exposed by this ingress.
    event filtering, and reconciliation of every configured target through public
    HTTPS. It requests reconciliation of existing source/image state; it does not
    publish an image or change application data. `--hook NAME` selects one receiver.
+   On the K3s host, use `verify --server local` to read cluster state and the token
+   locally while still sending signed requests through the public HTTPS endpoint.
 6. After real GitHub deliveries succeed, set the GitRepository, ImageRepository,
    and ImageUpdateAutomation intervals to `1h` in Git. Keep the Kustomization
    interval at `5m` for cluster drift correction. A missed webhook is recovered

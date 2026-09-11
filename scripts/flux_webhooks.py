@@ -83,6 +83,11 @@ def gh_api(path, method="GET", payload=None):
 
 
 def cluster(server, kind, name=None):
+    if server == "local":
+        args = ["k3s", "kubectl", "-n", "flux-system", "get", kind]
+        if name:
+            args.append(name)
+        return json.loads(command(args + ["-o", "json"]))
     cmd = f"k3s kubectl -n flux-system get {kind}"
     if name:
         cmd += " " + name
@@ -107,8 +112,11 @@ def endpoints(config, server):
 
 
 def runtime_token(config, server):
-    value = command(["ssh", "-o", "BatchMode=yes", server,
-                     "cat " + config["secretFile"]]).strip()
+    if server == "local":
+        value = pathlib.Path(config["secretFile"]).read_text(encoding="utf-8").strip()
+    else:
+        value = command(["ssh", "-o", "BatchMode=yes", server,
+                         "cat " + config["secretFile"]]).strip()
     if len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
         raise RuntimeError("Unexpected webhook credential format")
     return value
@@ -183,7 +191,7 @@ def post(url, hook, token, payload, valid_signature=True):
             return response.status
     except urllib.error.HTTPError as error:
         return error.code
-    except urllib.error.URLError:
+    except (urllib.error.URLError, TimeoutError):
         raise RuntimeError("Webhook endpoint connection failed") from None
 
 
@@ -242,6 +250,8 @@ def main():
     parser.add_argument("--hook")
     args = parser.parse_args()
     config = catalog()
+    if args.hook and args.hook not in {hook["name"] for hook in config["hooks"]}:
+        raise RuntimeError("Unknown receiver name")
     if args.action == "render":
         MANIFEST.write_text(rendered(config), encoding="utf-8", newline="\n")
     elif args.action == "check":

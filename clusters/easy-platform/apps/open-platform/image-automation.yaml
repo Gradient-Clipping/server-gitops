@@ -5,7 +5,8 @@ metadata:
   namespace: flux-system
 spec:
   image: ccr.ccs.tencentyun.com/lazycampus/lazycampus-platform
-  interval: 1m0s
+  interval: 1h
+  timeout: 1m0s
   secretRef:
     name: tcr-auth
 ---
@@ -41,7 +42,7 @@ spec:
       messageTemplate: "chore(images): update open-platform"
     push:
       branch: main
-  interval: 1m0s
+  interval: 1h
   sourceRef:
     kind: GitRepository
     name: flux-system

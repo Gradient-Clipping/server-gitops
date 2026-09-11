@@ -6,9 +6,21 @@ This private repository is the desired state for the single-node `easy-platform-
 
 1. A source repository builds and tests an image in GitHub Actions.
 2. The workflow publishes immutable tags to Tencent TCR.
-3. Flux image reflection selects the newest allowed tag.
+3. A signed GitHub `workflow_run` webhook for the successful production publisher
+   immediately triggers Flux image reflection to select the newest allowed tag.
 4. Flux image automation commits the tag change to this repository.
-5. Flux reconciliation applies the reviewed desired state to K3s.
+5. A signed GitHub push webhook triggers Flux to fetch the new GitOps revision
+   and apply the desired state to K3s.
+
+The Git source, image sources and image automation use a one-hour polling
+fallback. The Kustomization keeps its five-minute cluster drift checks.
+Webhook traffic enters at `hooks.lazycampus.com` through EdgeOne, host Nginx,
+Traefik and the existing Flux notification controller. Repository, branch,
+workflow, event and success filters are declared in `config/flux-webhooks.json`.
+See [webhook provisioning and recovery](config/FLUX_WEBHOOKS.md) for the versioned
+bootstrap, GitHub hook reconciler and live verification commands. The signing
+token is stored only in GitHub hook settings, a Kubernetes Secret and root-only
+server recovery material; business workflows need no additional credentials.
 
 The original `platform-smoke` workload was removed after the first production
 workloads exercised the same image automation path.
