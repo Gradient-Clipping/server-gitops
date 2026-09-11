@@ -16,3 +16,4 @@ resources:
   - apps/easy-swu
   - apps/open-platform
   - apps/status-page
+  - maintenance/host-security-preflight
