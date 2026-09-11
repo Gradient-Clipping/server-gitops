@@ -4,8 +4,7 @@
     {"id":"smart-shop","name":"Smart Shop","namespaces":["smart-shop"]},
     {"id":"easy-swu","name":"Easy SWU 小程序","namespaces":["easy-swu"]},
     {"id":"open-platform","name":"开放平台","namespaces":["open-platform"]},
-    {"id":"identity","name":"统一登录","namespaces":["identity-system"]},
-    {"id":"bbbto","name":"BBBTO","namespaces":["bbbto-mnp"]}
+    {"id":"identity","name":"统一登录","namespaces":["identity-system"]}
   ],
   "monitors": [
     {"id":"homepage-web","group":"homepage","name":"网站","kind":"http","target":"https://lazycampus.com/","publicUrl":"https://lazycampus.com","public":true,"dependencies":["k8s:lazycampus-site:deployment:lazycampus-site"]},
@@ -15,7 +14,6 @@
     {"id":"platform-web","group":"open-platform","name":"开发者控制台","kind":"http","target":"https://platform.lazycampus.com/","publicUrl":"https://platform.lazycampus.com","public":true,"dependencies":["k8s:open-platform:deployment:platform"]},
     {"id":"platform-api","group":"open-platform","name":"开放 API 网关","kind":"http","target":"https://platform.lazycampus.com/readyz","contains":"\"status\":\"ready\"","description":"开发者应用授权与校园开放接口。","public":true,"dependencies":["k8s:open-platform:deployment:platform","k8s:open-platform:deployment:platform-redis","k8s:easy-swu:deployment:easy-swu-api"]},
     {"id":"identity-sso","group":"identity","name":"统一身份认证","kind":"http","target":"https://auth.lazycampus.com/realms/lazycampus/.well-known/openid-configuration","contains":"\"issuer\"","public":true,"dependencies":["k8s:identity-system:deployment:keycloak"]},
-    {"id":"identity-campus","group":"identity","name":"学校账户登录","kind":"http","target":"https://auth.lazycampus.com/campus/.well-known/openid-configuration","contains":"\"issuer\"","public":true,"dependencies":["k8s:identity-system:deployment:identity-bridge"]},
-    {"id":"bbbto-web","group":"bbbto","name":"网站与服务","kind":"http","target":"https://bbbto.com/healthz","contains":"\"status\":\"ok\"","publicUrl":"https://bbbto.com","public":true,"dependencies":["k8s:bbbto-mnp:deployment:bbbto-mnp"]}
+    {"id":"identity-campus","group":"identity","name":"学校账户登录","kind":"http","target":"https://auth.lazycampus.com/campus/.well-known/openid-configuration","contains":"\"issuer\"","public":true,"dependencies":["k8s:identity-system:deployment:identity-bridge"]}
   ]
 }
