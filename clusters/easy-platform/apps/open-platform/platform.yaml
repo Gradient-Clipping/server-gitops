@@ -39,6 +39,9 @@ spec:
                 name: mysql-platform
             - secretRef:
                 name: platform-runtime
+            - secretRef:
+                name: platform-sender
+                optional: true
           env:
             - name: PLATFORM_ORIGIN
               value: https://platform.lazycampus.com

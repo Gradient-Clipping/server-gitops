@@ -359,6 +359,7 @@ After the initial installation has cached the pinned controller images, run `scr
 - 源码：`Gradient-Clipping/lazycampus-platform`，发布分支 `main`，镜像 `lazycampus/lazycampus-platform:1.0.<run_number>`。
 - 配置：`clusters/easy-platform/apps/open-platform/`；域名 `platform.lazycampus.com`。
 - 独立命名空间 `open-platform`、MySQL 数据库及账户 `lazycampus_platform`、Redis 数据目录 `/srv/k3s-data/open-platform/redis`。
+- Sender 事务邮件通过独立的 `platform-sender` Secret 注入。把 API 密钥及发件地址分别写入 `/etc/platform-secrets/platform-sender-api-key`、`platform-sender-from-email`（权限 0600），再执行运行时引导；API 密钥不进入 Git。未配置时只提供站内通知；配置后用户仍需验证个人邮箱并主动开启邮件提醒。
 - Keycloak 客户端由 `clusters/easy-platform/infrastructure/identity/open-platform.yaml` 的初始化 Job 和每小时调谐任务维护。复用已有 `ystemsrx` 管理员；本配置不创建用户或修改管理员密码。
 - 仅学校身份和指定管理员可以登录；客户端使用精确回调地址、PKCE S256、内部后端登出与受控身份属性映射。
 - Easy SWU 通过独立 HMAC 签名处理 `/internal/platform/v1/` 查询。公网 Easy SWU Ingress 仅发布 `/api/v1`，内部查询入口不暴露；共享服务继续使用原有校园缓存及会话。

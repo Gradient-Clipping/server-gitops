@@ -22,6 +22,15 @@ k3s kubectl -n open-platform create secret generic platform-runtime \
   --from-file=OIDC_CLIENT_SECRET="${SECRET_DIR}/platform-oidc-client-secret" \
   --from-file=CAMPUS_SERVICE_SECRET="${SECRET_DIR}/platform-campus-service-secret" \
   --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
+if [[ -s "${SECRET_DIR}/platform-sender-api-key" ]]; then
+  test -s "${SECRET_DIR}/platform-sender-from-email"
+  chmod 0600 "${SECRET_DIR}/platform-sender-api-key" "${SECRET_DIR}/platform-sender-from-email"
+  k3s kubectl -n open-platform create secret generic platform-sender \
+    --from-file=SENDER_API_KEY="${SECRET_DIR}/platform-sender-api-key" \
+    --from-file=SENDER_FROM_EMAIL="${SECRET_DIR}/platform-sender-from-email" \
+    --from-literal=SENDER_FROM_NAME='Lazy Campus' \
+    --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
+fi
 k3s kubectl -n easy-swu create secret generic easy-swu-open-platform \
   --from-file=OPEN_PLATFORM_SERVICE_SECRET="${SECRET_DIR}/platform-campus-service-secret" \
   --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
