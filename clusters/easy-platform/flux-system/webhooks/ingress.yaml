@@ -5,6 +5,7 @@ metadata:
   namespace: flux-system
   annotations:
     platform.lazycampus.com/domain-automation: enabled
+    platform.lazycampus.com/domain-reconcile-request: "2026-09-11T06:14:00Z"
 spec:
   ingressClassName: traefik
   rules:
