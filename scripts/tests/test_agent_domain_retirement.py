@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -81,6 +82,27 @@ class RetirementTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             retirement.retire(edge, dns)
         self.assertFalse(edge.writes or dns.writes)
+
+    def test_dns_is_withdrawn_when_edge_permission_is_missing_and_retry_resumes(self):
+        edge, dns = Edge(), DNS()
+        original = edge.call
+
+        def denied(service, action, payload):
+            if action == "ModifyAccelerationDomainStatuses":
+                raise PermissionError("Missing EdgeOne retirement permission")
+            return original(service, action, payload)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            snapshot = Path(temporary) / "before.json"
+            with patch.object(edge, "call", side_effect=denied), self.assertRaises(PermissionError):
+                retirement.retire(edge, dns, apply=True, snapshot=snapshot)
+            self.assertEqual(dns.records, [])
+            self.assertEqual(edge.previous["DomainStatus"], "online")
+            saved = snapshot.read_bytes()
+            result = retirement.retire(edge, dns, apply=True, snapshot=snapshot, pause=lambda _: None)
+            self.assertTrue(result["dns_removed"] and result["edgeone_removed"])
+            self.assertEqual(len(dns.writes), 1)
+            self.assertEqual(snapshot.read_bytes(), saved)
 
 
 if __name__ == "__main__":

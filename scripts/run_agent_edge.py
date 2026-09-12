@@ -22,6 +22,10 @@ FILES = ("config/production.json", "scripts/run_agent_edge.py", "scripts/product
 def run(args, content=None):
     result = subprocess.run(args, input=content, capture_output=True, cwd=ROOT, timeout=180)
     if result.returncode:
+        # Only expose the remote wrapper's fixed fields, never arbitrary remote output.
+        for line in result.stderr.decode(errors="replace").splitlines():
+            if re.fullmatch(r"EdgeOne request failed: [A-Za-z0-9]+ [A-Za-z0-9.]+ request=[A-Za-z0-9-]+", line):
+                print(line, file=sys.stderr)
         raise RuntimeError(f"Managed EdgeOne command failed with exit {result.returncode}; output withheld")
     return result.stdout
 

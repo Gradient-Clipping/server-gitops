@@ -60,6 +60,11 @@ def retire(tencent, cloudflare, *, apply=False, snapshot=SNAPSHOT, pause=time.sl
         saved = json.loads(snapshot.read_text())
         if saved.get("hostname") != OLD or saved.get("replacement") != NEW:
             raise ValueError("Unexpected retirement recovery record")
+    # Withdraw the obsolete public route even if EdgeOne retirement needs additional IAM permissions.
+    for record in records:
+        cloudflare._request("DeleteDnsRecord", "DELETE", f"/zones/{CF_ZONE}/dns_records/{record['id']}")
+    if cloudflare.list_dns_records(CF_ZONE, OLD):
+        raise ValueError("Previous DNS record still exists")
     if old:
         if old.get("DomainStatus") not in {"offline", "closing"}:
             tencent.call("teo", "ModifyAccelerationDomainStatuses", {"ZoneId": EO_ZONE, "DomainNames": [OLD], "Status": "offline", "Force": False})
@@ -70,8 +75,6 @@ def retire(tencent, cloudflare, *, apply=False, snapshot=SNAPSHOT, pause=time.sl
             pause(3)
         else:
             raise ValueError("EdgeOne is still disabling the previous domain; retry the same managed operation")
-    for record in records:
-        cloudflare._request("DeleteDnsRecord", "DELETE", f"/zones/{CF_ZONE}/dns_records/{record['id']}")
     if old and domain():
         # Do not delete associated aliases, traffic policies or other resources implicitly.
         tencent.call("teo", "DeleteAccelerationDomains", {"ZoneId": EO_ZONE, "DomainNames": [OLD], "Force": False})

@@ -1,0 +1,15 @@
+{
+  "version": "2.0",
+  "statement": [
+    {
+      "effect": "allow",
+      "action": [
+        "name/teo:ModifyAccelerationDomainStatuses",
+        "name/teo:DeleteAccelerationDomains"
+      ],
+      "resource": [
+        "qcs::teo::uin/100041495148:zone/zone-3solmvkeru39"
+      ]
+    }
+  ]
+}
