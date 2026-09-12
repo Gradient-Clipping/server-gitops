@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: agent-data-snapshots
+  namespace: lazycampus-agent
+spec:
+  schedule: "*/15 * * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 240
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels: {app.kubernetes.io/name: agent-snapshots}
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: easy-platform-1}
+          imagePullSecrets: [{name: tcr-auth}]
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 1000
+            fsGroup: 1000
+            supplementalGroups: [10001]
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: project
+              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.3 # {"$imagepolicy": "flux-system:agent-backend"}
+              command: [python, -m, data_access, refresh]
+              envFrom: [{secretRef: {name: agent-snapshot-mysql}}]
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {cpu: 500m, memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: [ALL]}
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - {name: shop, mountPath: /source/smart-shop, readOnly: true}
+                - {name: audit, mountPath: /source/audit, readOnly: true}
+                - {name: workspace, mountPath: /exports, subPath: data}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: shop
+              hostPath: {path: /srv/k3s-data/smart-shop/data, type: Directory}
+            - name: audit
+              hostPath: {path: /var/log/kubernetes, type: Directory}
+            - name: workspace
+              persistentVolumeClaim: {claimName: agent-workspace}
+            - name: tmp
+              emptyDir: {sizeLimit: 256Mi}

@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-astrbot
+  namespace: lazycampus-agent
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app.kubernetes.io/name: agent-astrbot}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: agent-astrbot}
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets: [{name: tcr-auth}]
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: astrbot
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot:1.0.3 # {"$imagepolicy": "flux-system:agent-astrbot"}
+          envFrom: [{secretRef: {name: agent-qq}}]
+          env:
+            - {name: BRIDGE_URL, value: "http://agent-backend:8000"}
+            - name: BRIDGE_TOKEN
+              valueFrom: {secretKeyRef: {name: agent-api, key: BRIDGE_TOKEN}}
+            - name: ASTRBOT_ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: agent-admin, key: ASTRBOT_ADMIN_PASSWORD}}
+          ports: [{name: dashboard, containerPort: 6185}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 80m, memory: 256Mi}
+            limits: {cpu: 750m, memory: 768Mi}
+          volumeMounts:
+            - {name: data, mountPath: /AstrBot/data}
+            - {name: tmp, mountPath: /tmp}
+          startupProbe:
+            tcpSocket: {port: dashboard}
+            periodSeconds: 5
+            failureThreshold: 90
+          readinessProbe:
+            tcpSocket: {port: dashboard}
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: {port: dashboard}
+            periodSeconds: 30
+            failureThreshold: 4
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: agent-astrbot}
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-astrbot
+  namespace: lazycampus-agent
+spec:
+  selector: {app.kubernetes.io/name: agent-astrbot}
+  ports: [{name: dashboard, port: 6185, targetPort: 6185}]

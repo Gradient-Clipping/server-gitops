@@ -1,0 +1,84 @@
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: campus-sandbox
+  namespace: lazycampus-agent
+spec:
+  replicas: 1
+  podTemplate:
+    metadata:
+      annotations:
+        dev.gvisor.spec.mount.workspace.share: shared
+        dev.gvisor.spec.mount.workspace.type: bind
+      labels:
+        app.kubernetes.io/name: campus-sandbox
+    spec:
+      runtimeClassName: agent-gvisor
+      serviceAccountName: agent-reader
+      automountServiceAccountToken: true
+      terminationGracePeriodSeconds: 45
+      imagePullSecrets: [{name: tcr-auth}]
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: opencode
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox:1.0.3 # {"$imagepolicy": "flux-system:agent-sandbox"}
+          envFrom: [{secretRef: {name: agent-model}}]
+          env:
+            - {name: WORKSPACE_DIR, value: /workspace}
+            - {name: AGENT_API_URL, value: "http://agent-backend:8000"}
+            - name: AGENT_TOKEN
+              valueFrom: {secretKeyRef: {name: agent-api, key: AGENT_TOKEN}}
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom: {secretKeyRef: {name: agent-opencode, key: OPENCODE_SERVER_PASSWORD}}
+          ports: [{name: opencode, containerPort: 4096}]
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1500m", memory: 1536Mi, ephemeral-storage: 2Gi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: workspace, mountPath: /workspace}
+            - {name: workspace, mountPath: /workspace/data, subPath: data, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          startupProbe:
+            tcpSocket: {port: opencode}
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket: {port: opencode}
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: {port: opencode}
+            periodSeconds: 30
+            failureThreshold: 4
+      volumes:
+        - name: workspace
+          persistentVolumeClaim: {claimName: agent-workspace}
+        - name: tmp
+          emptyDir: {sizeLimit: 1Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-opencode
+  namespace: lazycampus-agent
+spec:
+  selector: {app.kubernetes.io/name: campus-sandbox}
+  ports: [{name: opencode, port: 4096, targetPort: 4096}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-preview-runtime
+  namespace: lazycampus-agent
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: campus-sandbox}
+  ports: [{name: opencode, port: 4096, targetPort: 4096}]

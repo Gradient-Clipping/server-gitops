@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: agent-backup
+  namespace: lazycampus-agent
+spec:
+  schedule: "37 3 * * *"
+  timeZone: Asia/Shanghai
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 7200
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1200
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels: {app.kubernetes.io/name: agent-backup}
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: easy-platform-1}
+          imagePullSecrets: [{name: tcr-auth}]
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: backup
+              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.3 # {"$imagepolicy": "flux-system:agent-backend"}
+              command: [python, /scripts/backup_agent.py]
+              resources:
+                requests: {cpu: 30m, memory: 64Mi}
+                limits: {cpu: 500m, memory: 192Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: [ALL]}
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - {name: workspace, mountPath: /source/workspace, readOnly: true}
+                - {name: state, mountPath: /source/state, readOnly: true}
+                - {name: published, mountPath: /source/published, readOnly: true}
+                - {name: astrbot, mountPath: /source/astrbot, readOnly: true}
+                - {name: backup, mountPath: /backups}
+                - {name: script, mountPath: /scripts, readOnly: true}
+          volumes:
+            - name: workspace
+              persistentVolumeClaim: {claimName: agent-workspace}
+            - name: state
+              persistentVolumeClaim: {claimName: agent-state}
+            - name: published
+              persistentVolumeClaim: {claimName: agent-published}
+            - name: astrbot
+              persistentVolumeClaim: {claimName: agent-astrbot}
+            - name: backup
+              hostPath: {path: /srv/k3s-backups/lazycampus-agent, type: Directory}
+            - name: script
+              configMap: {name: agent-backup-script, defaultMode: 292}

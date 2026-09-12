@@ -9,6 +9,7 @@ resources:
   - infrastructure/mysql
   - infrastructure/identity
   - infrastructure/domain-automation
+  - infrastructure/agent-sandbox
   - apps/lazycampus-site
   - apps/bbbto-mnp
   - apps/smart-shop
@@ -16,3 +17,4 @@ resources:
   - apps/easy-swu
   - apps/open-platform
   - apps/status-page
+  - apps/lazycampus-agent

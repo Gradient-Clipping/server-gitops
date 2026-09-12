@@ -1,0 +1,10 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages: [RequestReceived]
+rules:
+  - level: None
+    users: [system:kube-proxy]
+    verbs: [watch]
+  - level: None
+    nonResourceURLs: [/healthz*, /livez*, /readyz*, /version]
+  - level: Metadata

@@ -1,0 +1,9 @@
+{{ template "base" . }}
+
+[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.'agent-runsc']
+  runtime_type = "io.containerd.runsc.v1"
+  runtime_path = "/usr/local/bin/containerd-shim-runsc-v1"
+  pod_annotations = ["dev.gvisor.*"]
+  [plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.'agent-runsc'.options]
+    TypeUrl = "io.containerd.runsc.v1.options"
+    ConfigPath = "/etc/containerd/agent-runsc.toml"

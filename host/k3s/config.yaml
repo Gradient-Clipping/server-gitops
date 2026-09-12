@@ -17,6 +17,11 @@ kubelet-arg:
 kube-proxy-arg:
   - nodeport-addresses=127.0.0.0/8
 kube-apiserver-arg:
+  - audit-policy-file=/etc/rancher/k3s/audit-policy.yaml
+  - audit-log-path=/var/log/kubernetes/audit.log
+  - audit-log-maxage=7
+  - audit-log-maxbackup=3
+  - audit-log-maxsize=10
   - oidc-issuer-url=https://auth.lazycampus.com/realms/lazycampus
   - oidc-client-id=headlamp
   - oidc-username-claim=preferred_username

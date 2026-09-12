@@ -1,0 +1,12 @@
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: agent-gvisor
+handler: agent-runsc
+overhead:
+  podFixed:
+    cpu: 30m
+    memory: 64Mi
+scheduling:
+  nodeSelector:
+    kubernetes.io/hostname: easy-platform-1

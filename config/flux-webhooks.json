@@ -103,6 +103,18 @@
       "resources": [
         "lazycampus-status"
       ]
+    },
+    {
+      "name": "github-lazycampus-agent",
+      "repository": "Gradient-Clipping/lazycampus-agent",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": [
+        "agent-backend",
+        "agent-sandbox",
+        "agent-astrbot"
+      ]
     }
   ]
 }

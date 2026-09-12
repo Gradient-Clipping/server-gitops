@@ -1,0 +1,5 @@
+binary_name = "/usr/local/bin/runsc"
+root = "/run/containerd/runsc"
+[runsc_config]
+  platform = "systrap"
+  network = "sandbox"

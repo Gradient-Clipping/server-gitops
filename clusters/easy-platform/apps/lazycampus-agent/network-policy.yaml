@@ -1,0 +1,100 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny, namespace: lazycampus-agent}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: dns, namespace: lazycampus-agent}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: sandbox, namespace: lazycampus-agent}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: campus-sandbox}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: agent-backend}}
+      ports: [{port: 4096, protocol: TCP}, {port: 20000, endPort: 20100, protocol: TCP}]
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: agent-backend}}
+      ports: [{port: 8000, protocol: TCP}]
+    - to:
+        - ipBlock: {cidr: 10.6.0.3/32}
+        - ipBlock: {cidr: 10.43.0.1/32}
+      ports: [{port: 6443, protocol: TCP}, {port: 443, protocol: TCP}]
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.0.0/16, 100.64.0.0/10, 1.14.95.189/32]
+      ports: [{port: 443, protocol: TCP}, {port: 80, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: backend, namespace: lazycampus-agent}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: agent-backend}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: campus-sandbox}}
+        - podSelector: {matchLabels: {app.kubernetes.io/name: agent-astrbot}}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: ingress-system}
+      ports: [{port: 8000, protocol: TCP}]
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: campus-sandbox}}
+      ports: [{port: 4096, protocol: TCP}, {port: 20000, endPort: 20100, protocol: TCP}]
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.0.0/16, 100.64.0.0/10, 1.14.95.189/32]
+      ports: [{port: 443, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: astrbot, namespace: lazycampus-agent}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: agent-astrbot}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: ingress-system}
+      ports: [{port: 6185, protocol: TCP}]
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: agent-backend}}
+      ports: [{port: 8000, protocol: TCP}]
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.0.0/16, 100.64.0.0/10, 1.14.95.189/32]
+      ports: [{port: 443, protocol: TCP}, {port: 80, protocol: TCP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: snapshots, namespace: lazycampus-agent}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: agent-snapshots}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: mysql-system}
+          podSelector: {matchLabels: {app.kubernetes.io/name: platform-mysql}}
+      ports: [{port: 3306, protocol: TCP}]

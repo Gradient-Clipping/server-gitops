@@ -1,0 +1,66 @@
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: agent-backend
+  namespace: flux-system
+spec:
+  image: ccr.ccs.tencentyun.com/lazycampus/agent-backend
+  interval: 1h
+  secretRef: {name: tcr-auth}
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: agent-backend
+  namespace: flux-system
+  labels:
+    platform.lazycampus.com/image-automation: paused
+spec:
+  imageRepositoryRef: {name: agent-backend}
+  policy:
+    semver: {range: ">=1.0.0 <2.0.0"}
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: agent-sandbox
+  namespace: flux-system
+spec:
+  image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox
+  interval: 1h
+  secretRef: {name: tcr-auth}
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: agent-sandbox
+  namespace: flux-system
+  labels:
+    platform.lazycampus.com/image-automation: paused
+spec:
+  imageRepositoryRef: {name: agent-sandbox}
+  policy:
+    semver: {range: ">=1.0.0 <2.0.0"}
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImageRepository
+metadata:
+  name: agent-astrbot
+  namespace: flux-system
+spec:
+  image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot
+  interval: 1h
+  secretRef: {name: tcr-auth}
+---
+apiVersion: image.toolkit.fluxcd.io/v1
+kind: ImagePolicy
+metadata:
+  name: agent-astrbot
+  namespace: flux-system
+  labels:
+    platform.lazycampus.com/image-automation: paused
+spec:
+  imageRepositoryRef: {name: agent-astrbot}
+  policy:
+    semver: {range: ">=1.0.0 <2.0.0"}
+---

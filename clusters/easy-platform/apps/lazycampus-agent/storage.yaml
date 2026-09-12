@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: agent-workspace
+spec:
+  capacity: {storage: 8Gi}
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: agent-hostpath
+  hostPath: {path: /srv/k3s-data/lazycampus-agent/workspace, type: Directory}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [easy-platform-1]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-workspace
+  namespace: lazycampus-agent
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 8Gi}
+  storageClassName: agent-hostpath
+  volumeName: agent-workspace
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: agent-state
+spec:
+  capacity: {storage: 1Gi}
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: agent-hostpath
+  hostPath: {path: /srv/k3s-data/lazycampus-agent/state, type: Directory}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [easy-platform-1]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-state
+  namespace: lazycampus-agent
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 1Gi}
+  storageClassName: agent-hostpath
+  volumeName: agent-state
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: agent-published
+spec:
+  capacity: {storage: 2Gi}
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: agent-hostpath
+  hostPath: {path: /srv/k3s-data/lazycampus-agent/published, type: Directory}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [easy-platform-1]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-published
+  namespace: lazycampus-agent
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 2Gi}
+  storageClassName: agent-hostpath
+  volumeName: agent-published
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: agent-astrbot
+spec:
+  capacity: {storage: 2Gi}
+  accessModes: [ReadWriteOnce]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: agent-hostpath
+  hostPath: {path: /srv/k3s-data/lazycampus-agent/astrbot, type: Directory}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [easy-platform-1]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-astrbot
+  namespace: lazycampus-agent
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 2Gi}
+  storageClassName: agent-hostpath
+  volumeName: agent-astrbot
+---
