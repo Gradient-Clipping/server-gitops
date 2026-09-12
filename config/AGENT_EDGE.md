@@ -19,12 +19,13 @@ Domain retirement additionally needs `ModifyAccelerationDomainStatuses` and
 [`agent-domain-retirement-policy.json`](agent-domain-retirement-policy.json) scopes
 these actions to Lazy Campus site `zone-3solmvkeru39` in account `100041495148`;
 the retirement code further restricts the target to the exact previous hostname.
-The current service principal is CAM user `100052141393` (verified with STS
-`GetCallerIdentity`). On 2026-09-12 the first action returned
-`AuthFailure.UnauthorizedOperation`; a cloud administrator must attach the versioned
-policy before the same managed command can finish EdgeOne retirement. The CNAME
-withdrawal is independent of this permission, and a retry preserves the original
-snapshot. The runner reports only API action, error code and request ID on failure.
+On 2026-09-12 the cloud administrator attached the exact versioned policy as
+`LazyCampusAgentDomainRetirement` (CAM policy `286189147`) to the existing
+`k3s-domain-reconciler` user `100052141393`. The gated runner at production
+`c49f239c41e0ab719ebb7051dc26085a13b152a9`, validation run `34696610871`, then
+confirmed both DNS and EdgeOne removal. The original private snapshot remains at
+`/var/lib/platform-agent-bootstrap/domain-retirement/agent-admin.json`.
+The runner reports only API action, error code and request ID on failure.
 See [Tencent's resource-level CAM permissions](https://intl.cloud.tencent.com/zh/document/product/598/57164).
 
 The 2026-09-12 acceptance test found that the same synthetic WebSocket endpoint returned 101 and echoed a frame through both host Nginx port 80 and Traefik port 32080, while the EdgeOne public endpoint returned 404. No existing EdgeOne L7 rule covered these two hosts. HTTP previews already worked.

@@ -24,7 +24,7 @@ spec:
       containers:
         - name: astrbot
           image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot:1.0.34695981105 # {"$imagepolicy": "flux-system:agent-astrbot"}
-          envFrom: [{secretRef: {name: agent-qq}}]
+          envFrom: [{secretRef: {name: agent-qq}}, {secretRef: {name: agent-model}}]
           env:
             - {name: AGENT_ADMIN_SSO_ENABLED, value: "true"}
             - {name: AGENT_ADMIN_PUBLIC_URL, value: "https://agent.lazycampus.com"}
