@@ -23,7 +23,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: backend
-          image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34695981105 # {"$imagepolicy": "flux-system:agent-backend"}
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34700511779 # {"$imagepolicy": "flux-system:agent-backend"}
           envFrom:
             - secretRef: {name: agent-api}
             - secretRef: {name: agent-opencode}
@@ -32,12 +32,9 @@ spec:
             - {name: WORKSPACE_DIR, value: /workspace}
             - {name: PUBLISHED_DIR, value: /published}
             - {name: OPENCODE_URL, value: "http://agent-opencode:4096"}
-            - {name: OPENCODE_PROVIDER, value: deepseek}
             - {name: OPENCODE_AGENT, value: campus}
             - {name: SANDBOX_PREVIEW_HOST, value: agent-preview-runtime}
             - {name: PUBLIC_BASE_URL, value: "https://preview.lazycampus.com"}
-            - name: DEEPSEEK_MODEL
-              valueFrom: {secretKeyRef: {name: agent-model, key: DEEPSEEK_MODEL}}
           ports: [{name: http, containerPort: 8000}]
           securityContext:
             allowPrivilegeEscalation: false
