@@ -12,7 +12,11 @@ resources:
   - snapshots.yaml
   - image-automation.yaml
   - backup.yaml
+  - rollout.yaml
 configMapGenerator:
   - name: agent-backup-script
     namespace: lazycampus-agent
     files: [backup_agent.py]
+  - name: agent-rollout-script
+    namespace: lazycampus-agent
+    files: [reconcile_sandbox.py]
