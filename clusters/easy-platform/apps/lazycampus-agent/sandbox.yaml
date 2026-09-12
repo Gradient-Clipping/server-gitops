@@ -7,9 +7,8 @@ spec:
   operatingMode: Running
   podTemplate:
     metadata:
-      annotations:
-        dev.gvisor.spec.mount.workspace.share: shared
-        dev.gvisor.spec.mount.workspace.type: bind
+      # Bind mounts already use runsc's shared mode. Mount hints require a
+      # kubelet volume directory that hostPath-backed PVCs do not provide.
       labels:
         app.kubernetes.io/name: campus-sandbox
     spec:
