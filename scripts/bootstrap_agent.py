@@ -151,10 +151,30 @@ def provision(values):
     kubectl("apply", "--server-side", "--field-manager=agent-bootstrap", "-f", "-", content=json.dumps(
         {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "agent-sandbox-system"}}))
     apply_secret("tcr-auth", registry_config, "kubernetes.io/dockerconfigjson", namespace="agent-sandbox-system")
-    source = json.loads(kubectl("get", "secret", "mysql-easy-swu", "-n", "easy-swu", "-o", "json"))["data"]
-    database = base64.b64decode(source["MYSQL_DATABASE"]).decode()
-    if not re.fullmatch(r"[a-zA-Z0-9_]+", database):
-        raise ValueError("Unexpected source database identifier")
+    provision_snapshot_views()
+
+
+def provision_snapshot_views():
+    secret_dir = Path("/etc/platform-secrets")
+    sources = []
+    for prefix, namespace, secret, views in (
+        ("EASY_CAMPUS", "easy-swu", "mysql-easy-swu", "agent-views.sql"),
+        ("OPEN_PLATFORM", "open-platform", "mysql-platform", "agent-open-platform-views.sql"),
+    ):
+        source = json.loads(kubectl("get", "secret", secret, "-n", namespace, "-o", "json"))["data"]
+        database = base64.b64decode(source["MYSQL_DATABASE"]).decode()
+        if not re.fullmatch(r"[a-zA-Z0-9_]+", database):
+            raise ValueError("Unexpected source database identifier")
+        sources.append((prefix, database, (ROOT / "config" / views).read_text(encoding="utf-8").replace("`agent_source_database`", "`" + database + "`")))
+    # Check both source schemas before replacing any existing grants or credentials.
+    preflight = []
+    for _, _, views in sources:
+        columns = re.findall(r"^GRANT SELECT \(([^)]+)\) ON (`\w+`\.`\w+`) TO 'agent_view_owner'@'localhost';$", views, re.MULTILINE)
+        if not columns:
+            raise ValueError("View template has no source column grants")
+        preflight.extend(f"SELECT {fields} FROM {table} LIMIT 0;" for fields, table in columns)
+    kubectl("exec", "-i", "-n", "mysql-system", "mysql-0", "--", "sh", "-c",
+            'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --user=root --batch', content="\n".join(preflight))
     account_file = secret_dir / "agent-snapshot-password"
     if not account_file.exists():
         account_file.write_text(secrets.token_urlsafe(36))
@@ -169,15 +189,16 @@ def provision(values):
         f"ALTER USER 'agent_snapshot'@'%' IDENTIFIED BY '{account_password}';\n"
         "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'agent_snapshot'@'%';\n"
         "REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'agent_view_owner'@'localhost';\n"
-        + (ROOT / "config/agent-views.sql").read_text().replace("`agent_source_database`", "`" + database + "`")
+        + "\n".join(views for _, _, views in sources)
     )
     kubectl("exec", "-i", "-n", "mysql-system", "mysql-0", "--", "sh", "-c",
             'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --user=root --batch', content=sql)
-    apply_secret("agent-snapshot-mysql", {
-        "EASY_CAMPUS_DB_HOST": "mysql.mysql-system.svc.cluster.local",
-        "EASY_CAMPUS_DB_PORT": "3306", "EASY_CAMPUS_DB_NAME": database,
-        "EASY_CAMPUS_DB_USER": "agent_snapshot", "EASY_CAMPUS_DB_PASSWORD": account_password,
-    })
+    snapshot_config = {}
+    for prefix, database, _ in sources:
+        for field, value in {"HOST": "mysql.mysql-system.svc.cluster.local", "PORT": "3306", "NAME": database,
+                             "USER": "agent_snapshot", "PASSWORD": account_password}.items():
+            snapshot_config[f"{prefix}_DB_{field}"] = value
+    apply_secret("agent-snapshot-mysql", snapshot_config)
 
 
 def configure_nginx():
@@ -206,12 +227,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--nginx-only", action="store_true")
+    parser.add_argument("--snapshots-only", action="store_true")
     parser.add_argument("--runtime-archive", type=Path)
     parser.add_argument("--restart-k3s", action="store_true")
     args = parser.parse_args()
+    if args.snapshots_only and (args.nginx_only or args.env_file or args.runtime_archive or args.restart_k3s):
+        parser.error("--snapshots-only only provisions the scoped data views and exporter credentials")
     if os.geteuid() != 0 or os.uname().machine != "x86_64":
         raise ValueError("This deployment targets the documented x86_64 K3s node as root")
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if args.snapshots_only:
+        provision_snapshot_views()
+        print("Agent snapshot views and scoped exporter credentials applied.")
+        return
     if args.nginx_only:
         if args.env_file or args.restart_k3s or args.runtime_archive:
             parser.error("--nginx-only cannot change runtime or credentials")

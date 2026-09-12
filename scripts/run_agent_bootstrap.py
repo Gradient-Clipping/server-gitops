@@ -32,12 +32,15 @@ def main():
     parser.add_argument("--run-id", required=True, type=int)
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--nginx-only", action="store_true")
+    parser.add_argument("--snapshots-only", action="store_true")
     parser.add_argument("--runtime-archive", type=Path)
     parser.add_argument("--restart-k3s", action="store_true")
     args = parser.parse_args()
-    if args.nginx_only:
+    if args.nginx_only and args.snapshots_only:
+        parser.error("Choose one scoped bootstrap mode")
+    if args.nginx_only or args.snapshots_only:
         if args.env_file or args.runtime_archive or args.restart_k3s:
-            parser.error("--nginx-only cannot change runtime or credentials")
+            parser.error("Scoped bootstrap cannot accept runtime changes or an environment file")
     elif not args.env_file:
         parser.error("--env-file is required for full bootstrap")
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision):
@@ -65,7 +68,7 @@ def main():
         if (ROOT / name).read_bytes().replace(b"\r\n", b"\n") != expected.replace(b"\r\n", b"\n"):
             raise ValueError("Local runner or gate differs from the validated production commit")
     archive = run(["git", "archive", "--format=tar", args.revision,
-                   "scripts/bootstrap_agent.py", "host/agent", "host/k3s/config.yaml", "config/agent-views.sql"], binary=True)
+                   "scripts/bootstrap_agent.py", "host/agent", "host/k3s/config.yaml", "config/agent-views.sql", "config/agent-open-platform-views.sql"], binary=True)
     remote = "/var/lib/platform-gitops/" + args.revision
     ssh = [shutil.which("ssh.exe") or "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", SERVER]
     if args.runtime_archive:
@@ -77,10 +80,11 @@ def main():
         run(ssh + ["chmod 0600 " + shlex.quote(staged_cache) + " && mv -f "
                    + shlex.quote(staged_cache) + " " + shlex.quote(RUNTIME_CACHE)])
     run(ssh + ["install -d -m 0700 " + shlex.quote(remote) + " && tar -xf - -C " + shlex.quote(remote)], archive, binary=True)
-    if args.nginx_only:
+    if args.nginx_only or args.snapshots_only:
         if api(f"{prefix}/git/ref/heads/production")["object"]["sha"] != args.revision:
-            raise ValueError("Production changed before ingress application")
-        result = run(ssh + [shlex.join(["python3", remote + "/scripts/bootstrap_agent.py", "--nginx-only"])])
+            raise ValueError("Production changed before scoped bootstrap")
+        mode = "--snapshots-only" if args.snapshots_only else "--nginx-only"
+        result = run(ssh + [shlex.join(["python3", remote + "/scripts/bootstrap_agent.py", mode])])
         print(result.strip())
         return
     env_target = "/etc/platform-secrets/lazycampus-agent.env"
