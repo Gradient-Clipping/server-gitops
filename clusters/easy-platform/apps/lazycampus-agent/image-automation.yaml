@@ -14,7 +14,7 @@ metadata:
   name: agent-backend
   namespace: flux-system
   labels:
-    platform.lazycampus.com/image-automation: paused
+    platform.lazycampus.com/image-automation: platform-images
 spec:
   imageRepositoryRef: {name: agent-backend}
   policy:
@@ -36,7 +36,7 @@ metadata:
   name: agent-sandbox
   namespace: flux-system
   labels:
-    platform.lazycampus.com/image-automation: paused
+    platform.lazycampus.com/image-automation: platform-images
 spec:
   imageRepositoryRef: {name: agent-sandbox}
   policy:
@@ -58,7 +58,7 @@ metadata:
   name: agent-astrbot
   namespace: flux-system
   labels:
-    platform.lazycampus.com/image-automation: paused
+    platform.lazycampus.com/image-automation: platform-images
 spec:
   imageRepositoryRef: {name: agent-astrbot}
   policy:
