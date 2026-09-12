@@ -39,12 +39,41 @@ def copy_sqlite(source, target):
         if time.monotonic() - start > 90:
             raise TimeoutError("SQLite online backup exceeded its time budget")
 
-    with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True, timeout=10)) as reader:
-        with closing(sqlite3.connect(target)) as writer:
-            reader.backup(writer, pages=128, progress=progress, sleep=0.1)
-            if writer.execute("PRAGMA quick_check").fetchone()[0] != "ok":
-                raise RuntimeError("SQLite backup integrity check failed")
-            writer.execute("PRAGMA journal_mode=DELETE")
+    def online_copy(path):
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10)) as reader:
+            with closing(sqlite3.connect(target)) as writer:
+                reader.backup(writer, pages=128, progress=progress, sleep=0.1)
+                if writer.execute("PRAGMA quick_check").fetchall() != [("ok",)]:
+                    raise RuntimeError("SQLite backup integrity check failed")
+                if writer.execute("PRAGMA main.journal_mode=DELETE").fetchall() != [("delete",)]:
+                    raise RuntimeError("SQLite backup could not become a standalone database")
+
+    try:
+        online_copy(source)
+        return
+    except sqlite3.OperationalError as error:
+        code = getattr(error, "sqlite_errorcode", 0)
+        if (code & 0xFF) != sqlite3.SQLITE_CANTOPEN and code != sqlite3.SQLITE_READONLY_DIRECTORY:
+            raise
+        with source.open("rb") as stream:
+            header = stream.read(20)
+        if header[18:20] != b"\x02\x02":
+            raise
+
+    # A closed WAL database may lack sidecars, which cannot be recreated on a
+    # read-only source mount. Never use immutable=1 against a live database.
+    sidecars = [Path(str(source) + suffix) for suffix in ("-wal", "-shm", "-journal")]
+    if any(path.exists() or path.is_symlink() for path in sidecars):
+        raise RuntimeError("SQLite source sidecars are unavailable; retry when the source is readable")
+    before = source.stat()
+    with tempfile.TemporaryDirectory(prefix=".sqlite-readonly-", dir=target.parent) as temporary:
+        snapshot = Path(temporary) / "source.sqlite3"
+        shutil.copyfile(source, snapshot)
+        after = source.stat()
+        fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+        if any(getattr(before, field) != getattr(after, field) for field in fields) or any(path.exists() or path.is_symlink() for path in sidecars):
+            raise RuntimeError("SQLite source changed during its private copy; retry the backup")
+        online_copy(snapshot)
 
 
 def copy_file(source, target):
