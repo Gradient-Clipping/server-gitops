@@ -107,9 +107,6 @@ def provision(values):
     }
     for name, keys in sets.items():
         apply_secret(name, {key: values[key] for key in keys})
-    # The high-entropy generated admin password protects both the outer HTTP gate and WebUI.
-    password_hash = base64.b64encode(hashlib.sha1(values["ASTRBOT_ADMIN_PASSWORD"].encode()).digest()).decode()
-    apply_secret("agent-admin-http", {"users": "admin:{SHA}" + password_hash + "\n"})
     secret_dir = Path("/etc/platform-secrets")
     username = (secret_dir / "tcr-username").read_text().strip()
     password = (secret_dir / "tcr-password").read_text().strip()
