@@ -38,8 +38,8 @@ def kubectl(*args, content=None):
     return command(["k3s", "kubectl", *args], content)
 
 
-def apply_secret(name, values, secret_type="Opaque"):
-    resource = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": name, "namespace": NS},
+def apply_secret(name, values, secret_type="Opaque", namespace=NS):
+    resource = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": name, "namespace": namespace},
                 "type": secret_type, "data": {key: base64.b64encode(value.encode()).decode() for key, value in values.items()}}
     kubectl("apply", "--server-side", "--field-manager=agent-bootstrap", "-f", "-", content=json.dumps(resource))
 
@@ -145,9 +145,12 @@ def provision(values):
     username = (secret_dir / "tcr-username").read_text().strip()
     password = (secret_dir / "tcr-password").read_text().strip()
     auth = base64.b64encode((username + ":" + password).encode()).decode()
-    apply_secret("tcr-auth", {".dockerconfigjson": json.dumps({"auths": {
-        "ccr.ccs.tencentyun.com": {"username": username, "password": password, "auth": auth}}})},
-        "kubernetes.io/dockerconfigjson")
+    registry_config = {".dockerconfigjson": json.dumps({"auths": {
+        "ccr.ccs.tencentyun.com": {"username": username, "password": password, "auth": auth}}})}
+    apply_secret("tcr-auth", registry_config, "kubernetes.io/dockerconfigjson")
+    kubectl("apply", "--server-side", "--field-manager=agent-bootstrap", "-f", "-", content=json.dumps(
+        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "agent-sandbox-system"}}))
+    apply_secret("tcr-auth", registry_config, "kubernetes.io/dockerconfigjson", namespace="agent-sandbox-system")
     source = json.loads(kubectl("get", "secret", "mysql-easy-swu", "-n", "easy-swu", "-o", "json"))["data"]
     database = base64.b64decode(source["MYSQL_DATABASE"]).decode()
     if not re.fullmatch(r"[a-zA-Z0-9_]+", database):

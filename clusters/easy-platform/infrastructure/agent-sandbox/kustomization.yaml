@@ -3,7 +3,19 @@ kind: Kustomization
 resources:
   - upstream-v1.0.2.yaml
   - runtimeclass.yaml
+images:
+  - name: registry.k8s.io/agent-sandbox/agent-sandbox-controller
+    newName: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox-controller
+    newTag: v1.0.2
+    digest: sha256:e38c6b2e5daeb2681f8f5ab172671de19d4d3d7052c88a40a34f298bb84649f8
 patches:
+  - target:
+      kind: ServiceAccount
+      name: agent-sandbox-controller
+    patch: |-
+      - op: add
+        path: /imagePullSecrets
+        value: [{name: tcr-auth}]
   - target:
       kind: Deployment
       name: agent-sandbox-controller

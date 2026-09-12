@@ -1,0 +1,56 @@
+name: Mirror pinned Agent Sandbox controller
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/mirror-agent-controller.yml
+      - clusters/easy-platform/infrastructure/agent-sandbox/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-agent-controller-v1.0.2
+  cancel-in-progress: false
+
+env:
+  UPSTREAM: registry.k8s.io/agent-sandbox/agent-sandbox-controller
+  UPSTREAM_INDEX: sha256:dc700a37ecf4e680a146098a30996f420507e76e83a27dbd293f2b8114b14daa
+  UPSTREAM_AMD64: sha256:e38c6b2e5daeb2681f8f5ab172671de19d4d3d7052c88a40a34f298bb84649f8
+  TARGET: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox-controller:v1.0.2
+
+jobs:
+  mirror:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
+      - name: Verify the pinned upstream index and Linux amd64 manifest
+        run: |
+          docker buildx imagetools inspect "$UPSTREAM:v1.0.2" --format '{{json .Manifest}}' > "$RUNNER_TEMP/controller-index.json"
+          jq -e --arg index "$UPSTREAM_INDEX" --arg platform "$UPSTREAM_AMD64" \
+            '.digest == $index and any(.manifests[]; .digest == $platform and .platform.os == "linux" and .platform.architecture == "amd64")' \
+            "$RUNNER_TEMP/controller-index.json"
+      - name: Install checksum-verified crane v0.22.1
+        run: |
+          curl --fail --location --retry 3 --connect-timeout 20 --max-time 180 \
+            https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Linux_x86_64.tar.gz \
+            --output "$RUNNER_TEMP/crane.tar.gz"
+          echo "0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0  $RUNNER_TEMP/crane.tar.gz" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/crane-bin"
+          tar -xzf "$RUNNER_TEMP/crane.tar.gz" -C "$RUNNER_TEMP/crane-bin" crane
+          "$RUNNER_TEMP/crane-bin/crane" version
+      - uses: docker/login-action@v4
+        with:
+          registry: ccr.ccs.tencentyun.com
+          username: ${{ secrets.TCR_USERNAME }}
+          password: ${{ secrets.TCR_PASSWORD }}
+      - name: Copy the original manifest and layers without rebuilding
+        run: |
+          "$RUNNER_TEMP/crane-bin/crane" copy "$UPSTREAM@$UPSTREAM_AMD64" "$TARGET"
+          test "$("$RUNNER_TEMP/crane-bin/crane" digest "$TARGET")" = "$UPSTREAM_AMD64"
+          printf 'Verified controller mirror: %s@%s\n' "$TARGET" "$UPSTREAM_AMD64"
