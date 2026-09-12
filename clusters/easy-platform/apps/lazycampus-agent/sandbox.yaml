@@ -26,7 +26,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: opencode
-          image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox:1.0.34688960933 # {"$imagepolicy": "flux-system:agent-sandbox"}
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox:1.0.34689599210 # {"$imagepolicy": "flux-system:agent-sandbox"}
           envFrom: [{secretRef: {name: agent-model}}]
           env:
             - {name: WORKSPACE_DIR, value: /workspace}
