@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import time
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,15 +73,48 @@ def copy_managed(source, destination, mode=0o644):
     return True
 
 
-def install_runtime():
+def file_digest(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download_runtime(url, destination):
+    """Bound each attempt so a slow download cannot stall bootstrap indefinitely."""
+    for attempt in range(3):
+        try:
+            deadline = time.monotonic() + 180
+            with urllib.request.urlopen(url, timeout=30) as response, destination.open("wb") as output:
+                while True:
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("gVisor download exceeded its attempt time budget")
+                    chunk = response.read1(128 * 1024)
+                    if not chunk:
+                        return
+                    output.write(chunk)
+        except (OSError, TimeoutError):
+            destination.unlink(missing_ok=True)
+            if attempt == 2:
+                raise RuntimeError("gVisor download failed after three bounded attempts; use --runtime-archive") from None
+            time.sleep(attempt + 1)
+
+
+def install_runtime(runtime_archive=None):
     marker = STATE / "gvisor-version"
     if marker.exists() and marker.read_text().strip() == RELEASE:
         return False
     url = f"https://github.com/google/gvisor/releases/download/{RELEASE}/gvisor-x86_64.tar.bz2"
     with tempfile.TemporaryDirectory(prefix="agent-gvisor-") as temp:
-        archive = Path(temp) / "runtime.tar.bz2"
-        urllib.request.urlretrieve(url, archive)
-        if hashlib.sha256(archive.read_bytes()).hexdigest() != DIGEST:
+        if runtime_archive is None:
+            archive = Path(temp) / "runtime.tar.bz2"
+            download_runtime(url, archive)
+        else:
+            archive = runtime_archive.resolve(strict=True)
+            if not archive.is_file():
+                raise ValueError("Runtime archive must be an existing regular file")
+        if file_digest(archive) != DIGEST:
             raise ValueError("gVisor archive checksum mismatch")
         with tarfile.open(archive) as bundle:
             for name in ("runsc", "containerd-shim-runsc-v1"):
@@ -146,6 +180,7 @@ def provision(values):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", required=True, type=Path)
+    parser.add_argument("--runtime-archive", type=Path)
     parser.add_argument("--restart-k3s", action="store_true")
     args = parser.parse_args()
     if os.geteuid() != 0 or os.uname().machine != "x86_64":
@@ -156,7 +191,7 @@ def main():
     expected = ROOT / "host/agent/config-v3.toml.tmpl"
     if template.exists() and template.read_bytes() != expected.read_bytes() and "agent-runsc" not in template.read_text():
         raise ValueError("An existing custom containerd template requires a reviewed merge")
-    changed = install_runtime()
+    changed = install_runtime(args.runtime_archive)
     changed |= copy_managed(expected, template)
     changed |= copy_managed(ROOT / "host/agent/agent-runsc.toml", "/etc/containerd/agent-runsc.toml")
     changed |= copy_managed(ROOT / "host/agent/audit-policy.yaml", "/etc/rancher/k3s/audit-policy.yaml")
