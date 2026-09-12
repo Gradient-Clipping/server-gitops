@@ -23,7 +23,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: backend
-          image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34700511779 # {"$imagepolicy": "flux-system:agent-backend"}
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34701497848 # {"$imagepolicy": "flux-system:agent-backend"}
           envFrom:
             - secretRef: {name: agent-api}
             - secretRef: {name: agent-opencode}
