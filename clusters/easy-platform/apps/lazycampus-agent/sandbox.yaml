@@ -4,7 +4,7 @@ metadata:
   name: campus-sandbox
   namespace: lazycampus-agent
 spec:
-  replicas: 1
+  operatingMode: Running
   podTemplate:
     metadata:
       annotations:
