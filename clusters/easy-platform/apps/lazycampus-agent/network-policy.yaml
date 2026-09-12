@@ -76,7 +76,17 @@ spec:
         - namespaceSelector:
             matchLabels: {kubernetes.io/metadata.name: ingress-system}
       ports: [{port: 6185, protocol: TCP}]
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: identity-system}
+          podSelector: {matchLabels: {app.kubernetes.io/name: keycloak}}
+      ports: [{port: 6185, protocol: TCP}]
   egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: identity-system}
+          podSelector: {matchLabels: {app.kubernetes.io/name: keycloak}}
+      ports: [{port: 8080, protocol: TCP}]
     - to:
         - podSelector: {matchLabels: {app.kubernetes.io/name: agent-backend}}
       ports: [{port: 8000, protocol: TCP}]

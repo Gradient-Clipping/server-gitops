@@ -11,3 +11,4 @@ resources:
   - image-automation.yaml
   - open-platform.yaml
   - status-page.yaml
+  - agent-admin.yaml
