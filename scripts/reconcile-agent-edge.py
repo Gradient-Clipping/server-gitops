@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if not hasattr(dt, "UTC"):
     dt.UTC = dt.timezone.utc
 sys.path.insert(0, str(ROOT / "controller/domain-reconciler/src"))
-from domain_reconciler.reconciler import TencentCloudClient, TencentApiError  # noqa: E402
+from domain_reconciler.reconciler import CloudflareClient, TencentCloudClient, TencentApiError  # noqa: E402
 
 ZONE = "zone-3solmvkeru39"
 NAME = "Lazy Campus Agent interactive endpoints"
@@ -91,6 +91,7 @@ def reconcile(client, mode):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--retire-previous", action="store_true", help="Retire only the superseded Agent hostname after replacement health checks")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--check", action="store_true")
@@ -99,8 +100,15 @@ def main():
     client = TencentCloudClient((directory / "tencentcloud-secret-id").read_text().strip(),
                                (directory / "tencentcloud-secret-key").read_text().strip())
     action = reconcile(client, "apply" if args.apply else "check" if args.check else "plan")
+    retirement = {}
+    if args.retire_previous:
+        if not (args.apply or args.check):
+            parser.error("Retirement requires --apply or --check")
+        from retire_agent_admin_domain import preflight, retire
+        preflight()
+        retirement = retire(client, CloudflareClient((directory / "cloudflare-api-token").read_text().strip()), apply=args.apply)
     print(json.dumps({"rule": NAME, "hosts": HOSTS, "action": action,
-                      "websocket": "on", "idle_timeout_seconds": 120, "cache": "disabled"}))
+                      "websocket": "on", "idle_timeout_seconds": 120, "cache": "disabled", **retirement}))
 
 
 if __name__ == "__main__":

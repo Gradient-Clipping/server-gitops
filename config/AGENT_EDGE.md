@@ -2,6 +2,16 @@
 
 `scripts/reconcile-agent-edge.py` owns one EdgeOne L7 rule in the existing Lazy Campus zone. Its exact host condition includes only `preview.lazycampus.com` and `agent.lazycampus.com`. It enables WebSocket with a 120-second idle timeout, disables edge caching, and disables offline cache. Applications should send WebSocket heartbeats within that interval and reconnect after interruption. The known previous two-host rule is updated in place; unrelated rules remain untouched.
 
+After the replacement hostname is healthy, add `--retire-previous --apply` to the
+gated `run_agent_edge.py` command to retire `agent-admin.lazycampus.com`. It verifies
+Ingress and Nginx no longer reference it, checks replacement SSO health, saves its
+exact DNS and EdgeOne configuration under the private host bootstrap state, then
+disables/deletes only that acceleration domain and its matching CNAME. `Force` is
+false, so associated resources cannot be implicitly deleted. Repeated runs verify
+absence. This does not delete workloads, volumes, host data or repositories; the old
+hostname has no redirect. Recovery requires a reviewed GitOps routing/client change
+and the retained configuration snapshot, not an untracked console edit.
+
 Cloudflare remains DNS-only. The path is EdgeOne → host Nginx HTTP/1.1 → Traefik → backend/AstrBot. The preview ingress still exposes only `/p/`; this rule does not publish backend control APIs. Existing Tencent credentials and their `DescribeL7AccRules`, `CreateL7AccRules`, `ModifyL7AccRule` permissions suffice. No additional secret enters the Agent Sandbox.
 
 The 2026-09-12 acceptance test found that the same synthetic WebSocket endpoint returned 101 and echoed a frame through both host Nginx port 80 and Traefik port 32080, while the EdgeOne public endpoint returned 404. No existing EdgeOne L7 rule covered these two hosts. HTTP previews already worked.

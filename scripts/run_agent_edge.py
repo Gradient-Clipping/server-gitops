@@ -16,7 +16,7 @@ from production_gate import api, validate_run
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = "root@1.14.95.189"
 FILES = ("config/production.json", "scripts/run_agent_edge.py", "scripts/production_gate.py",
-         "scripts/reconcile-agent-edge.py", "controller/domain-reconciler/src")
+         "scripts/reconcile-agent-edge.py", "scripts/retire_agent_admin_domain.py", "controller/domain-reconciler/src")
 
 
 def run(args, content=None):
@@ -46,6 +46,7 @@ def main():
     parser.add_argument("--revision", required=True)
     parser.add_argument("--run-id", type=int, required=True)
     parser.add_argument("--apply", action="store_true", help="Apply; without this flag only verify")
+    parser.add_argument("--retire-previous", action="store_true")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision) or args.run_id <= 0:
         raise ValueError("A complete production revision and positive validation run ID are required")
@@ -62,6 +63,8 @@ def main():
     run(ssh + ["install -d -m 0700 " + shlex.quote(remote) + " && tar -xf - -C " + shlex.quote(remote)], payload)
     gate(config, args.revision, args.run_id)
     command = ["python3", remote + "/scripts/reconcile-agent-edge.py", "--apply" if args.apply else "--check"]
+    if args.retire_previous:
+        command.append("--retire-previous")
     summary = json.loads(run(ssh + [shlex.join(command)]))
     print(json.dumps({"revision": args.revision, "validation_run": args.run_id, **summary}))
 
