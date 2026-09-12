@@ -25,6 +25,7 @@ metadata:
   namespace: lazycampus-agent
   annotations:
     platform.lazycampus.com/domain-automation: enabled
+    platform.lazycampus.com/domain-reconcile-request: agent-sso-20260912
 spec:
   ingressClassName: traefik
   rules:
