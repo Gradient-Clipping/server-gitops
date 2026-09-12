@@ -28,7 +28,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: agent-admin.lazycampus.com
+    - host: agent.lazycampus.com
       http:
         paths:
           - path: /

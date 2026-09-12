@@ -1,6 +1,6 @@
 # Agent public WebSocket transport
 
-`scripts/reconcile-agent-edge.py` owns one EdgeOne L7 rule in the existing Lazy Campus zone. Its exact host condition includes only `preview.lazycampus.com` and `agent-admin.lazycampus.com`. It enables WebSocket with a 120-second idle timeout, disables edge caching, and disables offline cache. Applications should send WebSocket heartbeats within that interval and reconnect after interruption.
+`scripts/reconcile-agent-edge.py` owns one EdgeOne L7 rule in the existing Lazy Campus zone. Its exact host condition includes only `preview.lazycampus.com` and `agent.lazycampus.com`. It enables WebSocket with a 120-second idle timeout, disables edge caching, and disables offline cache. Applications should send WebSocket heartbeats within that interval and reconnect after interruption. The known previous two-host rule is updated in place; unrelated rules remain untouched.
 
 Cloudflare remains DNS-only. The path is EdgeOne → host Nginx HTTP/1.1 → Traefik → backend/AstrBot. The preview ingress still exposes only `/p/`; this rule does not publish backend control APIs. Existing Tencent credentials and their `DescribeL7AccRules`, `CreateL7AccRules`, `ModifyL7AccRule` permissions suffice. No additional secret enters the Agent Sandbox.
 

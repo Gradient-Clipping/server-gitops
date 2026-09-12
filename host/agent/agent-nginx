@@ -19,7 +19,7 @@ server {
 server {
     listen 80;
     listen [::]:80;
-    server_name agent-admin.lazycampus.com;
+    server_name agent.lazycampus.com;
     access_log off;
     client_max_body_size 64m;
     location / {

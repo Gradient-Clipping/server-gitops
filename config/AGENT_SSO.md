@@ -1,6 +1,6 @@
 # Agent Admin SSO
 
-`agent-admin.lazycampus.com` uses the existing `lazycampus` Keycloak realm and the
+`agent.lazycampus.com` uses the existing `lazycampus` Keycloak realm and the
 confidential `lazycampus-agent-admin` client. Only the `platform-admin` realm role
 grants dashboard access. Opening the site starts authorization automatically;
 an existing Keycloak session needs no additional login button.

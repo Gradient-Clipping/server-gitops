@@ -180,16 +180,47 @@ def provision(values):
     })
 
 
+def configure_nginx():
+    destination = Path("/etc/nginx/sites-available/lazycampus-agent")
+    previous = destination.read_bytes() if destination.exists() else None
+    changed = copy_managed(ROOT / "host/agent/agent-nginx", destination)
+    enabled = Path("/etc/nginx/sites-enabled/lazycampus-agent")
+    created_link = not enabled.exists()
+    if created_link:
+        enabled.symlink_to(destination)
+    try:
+        command(["nginx", "-t"])
+        if changed or created_link:
+            command(["systemctl", "reload", "nginx"])
+    except Exception:
+        if previous is None:
+            destination.unlink(missing_ok=True)
+        else:
+            destination.write_bytes(previous)
+        if created_link:
+            enabled.unlink(missing_ok=True)
+        raise
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--env-file", required=True, type=Path)
+    parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--nginx-only", action="store_true")
     parser.add_argument("--runtime-archive", type=Path)
     parser.add_argument("--restart-k3s", action="store_true")
     args = parser.parse_args()
     if os.geteuid() != 0 or os.uname().machine != "x86_64":
         raise ValueError("This deployment targets the documented x86_64 K3s node as root")
-    values = read_env(args.env_file)
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if args.nginx_only:
+        if args.env_file or args.restart_k3s or args.runtime_archive:
+            parser.error("--nginx-only cannot change runtime or credentials")
+        configure_nginx()
+        print("Agent host ingress configuration validated and applied.")
+        return
+    if not args.env_file:
+        parser.error("--env-file is required for full bootstrap")
+    values = read_env(args.env_file)
     template = Path("/var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.tmpl")
     expected = ROOT / "host/agent/config-v3.toml.tmpl"
     if template.exists() and template.read_bytes() != expected.read_bytes() and "agent-runsc" not in template.read_text():
@@ -212,12 +243,7 @@ def main():
         directory.mkdir(parents=True, exist_ok=True, mode=0o2770)
         os.chown(directory, 1000, 1000)
         directory.chmod(0o2770)
-    copy_managed(ROOT / "host/agent/agent-nginx", "/etc/nginx/sites-available/lazycampus-agent")
-    enabled = Path("/etc/nginx/sites-enabled/lazycampus-agent")
-    if not enabled.exists():
-        enabled.symlink_to("/etc/nginx/sites-available/lazycampus-agent")
-    command(["nginx", "-t"])
-    command(["systemctl", "reload", "nginx"])
+    configure_nginx()
     provision(values)
     if restart_marker.exists() and not args.restart_k3s:
         raise ValueError("Runtime files installed; repeat with --restart-k3s to activate the reviewed runtime")

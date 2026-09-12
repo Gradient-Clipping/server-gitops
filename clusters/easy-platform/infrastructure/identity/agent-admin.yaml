@@ -19,14 +19,14 @@ data:
       "serviceAccountsEnabled": false,
       "frontchannelLogout": false,
       "redirectUris": [
-        "https://agent-admin.lazycampus.com/auth/sso/callback"
+        "https://agent.lazycampus.com/auth/sso/callback"
       ],
       "webOrigins": [
-        "https://agent-admin.lazycampus.com"
+        "https://agent.lazycampus.com"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://agent-admin.lazycampus.com/auth/sso/signed-out",
+        "post.logout.redirect.uris": "https://agent.lazycampus.com/auth/sso/signed-out",
         "backchannel.logout.url": "http://agent-astrbot.lazycampus-agent.svc.cluster.local:6185/auth/sso/backchannel-logout",
         "backchannel.logout.session.required": "true",
         "backchannel.logout.revoke.offline.tokens": "false",
@@ -60,7 +60,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: agent-admin-oidc-bootstrap-v1
+  name: agent-admin-oidc-bootstrap-v2
   namespace: identity-system
 spec:
   backoffLimit: 3

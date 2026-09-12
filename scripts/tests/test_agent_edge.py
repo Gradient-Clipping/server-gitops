@@ -33,9 +33,9 @@ def live_rule():
 
 
 class AgentEdgeTests(unittest.TestCase):
-    def test_scopes_only_two_hosts_and_enables_interactive_transport(self):
+    def test_scopes_two_agent_hosts_and_enables_interactive_transport(self):
         rule = edge.desired_rule()
-        self.assertEqual(rule["Branches"][0]["Condition"], "${http.request.host} in ['preview.lazycampus.com', 'agent-admin.lazycampus.com']")
+        self.assertEqual(rule["Branches"][0]["Condition"], "${http.request.host} in ['preview.lazycampus.com', 'agent.lazycampus.com']")
         actions = {item["Name"]: item for item in rule["Branches"][0]["Actions"]}
         self.assertEqual(set(actions), {"WebSocket", "Cache", "OfflineCache"})
         self.assertEqual(actions["WebSocket"]["WebSocketParameters"], {"Switch": "on", "Timeout": 120})
@@ -88,6 +88,14 @@ class AgentEdgeTests(unittest.TestCase):
         current["Branches"][0]["Actions"].append({"Name": "Unexpected"})
         with self.assertRaises(ValueError):
             edge.reconcile(Client([current]), "check")
+
+    def test_known_previous_hostname_rule_migrates_without_creating_a_duplicate(self):
+        current = live_rule()
+        current["Branches"][0]["Condition"] = edge.PREVIOUS_CONDITION
+        client = Client([current])
+        self.assertEqual(edge.reconcile(client, "apply"), "updated")
+        self.assertEqual(client.calls[-1][1], "ModifyL7AccRule")
+        self.assertEqual(client.calls[-1][2]["Rule"]["RuleId"], current["RuleId"])
 
     def test_gate_requires_exact_successful_production_revision(self):
         config = {"repository": "Gradient-Clipping/server-gitops", "sourceBranch": "main", "productionBranch": "production",

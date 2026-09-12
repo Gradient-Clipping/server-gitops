@@ -17,8 +17,9 @@ from domain_reconciler.reconciler import TencentCloudClient, TencentApiError  # 
 
 ZONE = "zone-3solmvkeru39"
 NAME = "Lazy Campus Agent interactive endpoints"
-HOSTS = ("preview.lazycampus.com", "agent-admin.lazycampus.com")
-CONDITION = "${http.request.host} in ['preview.lazycampus.com', 'agent-admin.lazycampus.com']"
+HOSTS = ("preview.lazycampus.com", "agent.lazycampus.com")
+CONDITION = "${http.request.host} in ['preview.lazycampus.com', 'agent.lazycampus.com']"
+PREVIOUS_CONDITION = "${http.request.host} in ['preview.lazycampus.com', 'agent-admin.lazycampus.com']"
 DESCRIPTION = ["Managed by server-gitops/scripts/reconcile-agent-edge.py"]
 
 
@@ -50,7 +51,7 @@ def select_rule(rules):
         rule = matches[0]
         branches = rule.get("Branches", [])
         if (rule.get("Description") != DESCRIPTION or len(branches) != 1
-                or branches[0].get("Condition") != CONDITION or not rule.get("RuleId")):
+                or branches[0].get("Condition") not in {CONDITION, PREVIOUS_CONDITION} or not rule.get("RuleId")):
             raise ValueError("Existing rule is not the exclusively managed Agent rule")
         return rule
     return None

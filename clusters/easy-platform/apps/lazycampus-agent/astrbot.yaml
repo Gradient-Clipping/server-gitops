@@ -23,9 +23,17 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: astrbot
-          image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot:1.0.34689599210 # {"$imagepolicy": "flux-system:agent-astrbot"}
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot:1.0.34693339174 # {"$imagepolicy": "flux-system:agent-astrbot"}
           envFrom: [{secretRef: {name: agent-qq}}]
           env:
+            - {name: AGENT_ADMIN_SSO_ENABLED, value: "true"}
+            - {name: AGENT_ADMIN_PUBLIC_URL, value: "https://agent.lazycampus.com"}
+            - {name: AGENT_ADMIN_OIDC_ISSUER, value: "https://auth.lazycampus.com/realms/lazycampus"}
+            - {name: AGENT_ADMIN_OIDC_INTERNAL_ISSUER, value: "http://keycloak.identity-system.svc.cluster.local:8080/realms/lazycampus"}
+            - {name: AGENT_ADMIN_OIDC_CLIENT_ID, value: "lazycampus-agent-admin"}
+            - {name: AGENT_ADMIN_OIDC_REQUIRED_ROLE, value: "platform-admin"}
+            - name: AGENT_ADMIN_OIDC_CLIENT_SECRET
+              valueFrom: {secretKeyRef: {name: agent-admin-oidc-secret, key: OIDC_CLIENT_SECRET}}
             - {name: BRIDGE_URL, value: "http://agent-backend:8000"}
             - name: BRIDGE_TOKEN
               valueFrom: {secretKeyRef: {name: agent-api, key: BRIDGE_TOKEN}}
@@ -42,14 +50,14 @@ spec:
             - {name: data, mountPath: /AstrBot/data}
             - {name: tmp, mountPath: /tmp}
           startupProbe:
-            tcpSocket: {port: dashboard}
+            httpGet: {path: /auth/sso/health, port: dashboard}
             periodSeconds: 5
             failureThreshold: 90
           readinessProbe:
-            tcpSocket: {port: dashboard}
+            httpGet: {path: /auth/sso/health, port: dashboard}
             periodSeconds: 10
           livenessProbe:
-            tcpSocket: {port: dashboard}
+            httpGet: {path: /auth/sso/health, port: dashboard}
             periodSeconds: 30
             failureThreshold: 4
       volumes:
