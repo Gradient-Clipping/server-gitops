@@ -23,7 +23,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: astrbot
-          image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot:1.0.3 # {"$imagepolicy": "flux-system:agent-astrbot"}
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot:1.0.34686652728 # {"$imagepolicy": "flux-system:agent-astrbot"}
           envFrom: [{secretRef: {name: agent-qq}}]
           env:
             - {name: BRIDGE_URL, value: "http://agent-backend:8000"}
