@@ -31,7 +31,7 @@ spec:
             seccompProfile: {type: RuntimeDefault}
           containers:
             - name: project
-              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34734645772 # {"$imagepolicy": "flux-system:agent-backend"}
+              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34736102703 # {"$imagepolicy": "flux-system:agent-backend"}
               command: [python, -m, data_access, refresh]
               envFrom: [{secretRef: {name: agent-snapshot-mysql}}]
               resources:
