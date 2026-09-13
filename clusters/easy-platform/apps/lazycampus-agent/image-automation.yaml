@@ -4,7 +4,7 @@ metadata:
   name: agent-backend
   namespace: flux-system
   annotations:
-    reconcile.fluxcd.io/requestedAt: package-34743661168
+    reconcile.fluxcd.io/requestedAt: package-34747871608
 spec:
   image: ccr.ccs.tencentyun.com/lazycampus/agent-backend
   interval: 1h
@@ -28,7 +28,7 @@ metadata:
   name: agent-sandbox
   namespace: flux-system
   annotations:
-    reconcile.fluxcd.io/requestedAt: package-34743661168
+    reconcile.fluxcd.io/requestedAt: package-34747871608
 spec:
   image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox
   interval: 1h
@@ -52,7 +52,7 @@ metadata:
   name: agent-astrbot
   namespace: flux-system
   annotations:
-    reconcile.fluxcd.io/requestedAt: package-34743661168
+    reconcile.fluxcd.io/requestedAt: package-34747871608
 spec:
   image: ccr.ccs.tencentyun.com/lazycampus/agent-astrbot
   interval: 1h
