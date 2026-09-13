@@ -61,7 +61,7 @@ spec:
             seccompProfile: {type: RuntimeDefault}
           containers:
             - name: reconcile
-              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34701497848 # {"$imagepolicy": "flux-system:agent-backend"}
+              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34729976774 # {"$imagepolicy": "flux-system:agent-backend"}
               command: [python, /scripts/reconcile_sandbox.py]
               resources:
                 requests: {cpu: 10m, memory: 24Mi}

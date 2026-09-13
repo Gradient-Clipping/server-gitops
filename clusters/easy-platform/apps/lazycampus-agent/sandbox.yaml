@@ -26,10 +26,12 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: opencode
-          image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox:1.0.34701497848 # {"$imagepolicy": "flux-system:agent-sandbox"}
+          image: ccr.ccs.tencentyun.com/lazycampus/agent-sandbox:1.0.34729976774 # {"$imagepolicy": "flux-system:agent-sandbox"}
           env:
             - {name: WORKSPACE_DIR, value: /workspace}
             - {name: AGENT_API_URL, value: "http://agent-backend:8000"}
+            - name: GH_TOKEN
+              valueFrom: {secretKeyRef: {name: agent-github, key: GITHUB_READ_TOKEN}}
             - name: AGENT_TOKEN
               valueFrom: {secretKeyRef: {name: agent-api, key: AGENT_TOKEN}}
             - name: OPENCODE_SERVER_PASSWORD
