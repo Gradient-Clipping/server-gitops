@@ -50,14 +50,14 @@ spec:
             - {name: data, mountPath: /AstrBot/data}
             - {name: tmp, mountPath: /tmp}
           startupProbe:
-            httpGet: {path: /auth/sso/health, port: dashboard}
+            httpGet: {path: /auth/sso/runtime-health, port: dashboard}
             periodSeconds: 5
             failureThreshold: 90
           readinessProbe:
-            httpGet: {path: /auth/sso/health, port: dashboard}
+            httpGet: {path: /auth/sso/runtime-health, port: dashboard}
             periodSeconds: 10
           livenessProbe:
-            httpGet: {path: /auth/sso/health, port: dashboard}
+            httpGet: {path: /auth/sso/runtime-health, port: dashboard}
             periodSeconds: 30
             failureThreshold: 4
       volumes:
