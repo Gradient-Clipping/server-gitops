@@ -7,6 +7,7 @@ resources:
   - infrastructure/flux-controllers
   - infrastructure/ingress
   - infrastructure/mysql
+  - infrastructure/tailscale
   - infrastructure/identity
   - infrastructure/domain-automation
   - infrastructure/agent-sandbox

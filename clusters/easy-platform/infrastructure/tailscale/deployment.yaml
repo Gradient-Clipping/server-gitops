@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tailscale-proxy
+  namespace: tailscale-system
+  labels:
+    app.kubernetes.io/name: tailscale-proxy
+    app.kubernetes.io/part-of: easy-platform
+spec:
+  replicas: 1
+  # The persistent device identity must have exactly one writer.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tailscale-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tailscale-proxy
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: tailscale
+          image: ccr.ccs.tencentyun.com/lazycampus/tailscale:1.102.3@sha256:1b8596d535841065b0510c797b60bc5f1e43b1804eee7626d315581dcb60b778
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: tailscale-auth
+                  key: TS_AUTHKEY
+            - name: TS_AUTH_ONCE
+              value: "true"
+            - name: TS_STATE_DIR
+              value: /var/lib/tailscale
+            - name: TS_KUBE_SECRET
+              value: ""
+            - name: TS_USERSPACE
+              value: "true"
+            - name: TS_ACCEPT_DNS
+              value: "false"
+            - name: TS_EXTRA_ARGS
+              value: --accept-routes --shields-up
+            - name: TS_OUTBOUND_HTTP_PROXY_LISTEN
+              value: 0.0.0.0:1055
+            - name: TS_ENABLE_HEALTH_CHECK
+              value: "true"
+            - name: TS_ENABLE_METRICS
+              value: "true"
+            - name: TS_LOCAL_ADDR_PORT
+              value: 0.0.0.0:9002
+            - name: TS_HOSTNAME
+              value: platform-campus-gateway
+          ports:
+            - name: proxy
+              containerPort: 1055
+            - name: health
+              containerPort: 9002
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Check the local listener, not campus availability, for restarts.
+          livenessProbe:
+            tcpSocket:
+              port: proxy
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: state
+              mountPath: /var/lib/tailscale
+            - name: run
+              mountPath: /var/run/tailscale
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: platform-tailscale
+        - name: run
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

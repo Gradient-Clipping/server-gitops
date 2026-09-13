@@ -79,45 +79,6 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: easy-swu-tailscale
-  labels:
-    app.kubernetes.io/name: easy-swu-tailscale
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: easy-swu-tailscale-hostpath
-  hostPath:
-    path: /srv/k3s-data/easy-swu/tailscale
-    type: Directory
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-                - easy-platform-1
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: easy-swu-tailscale
-  namespace: easy-swu
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: easy-swu-tailscale-hostpath
-  volumeName: easy-swu-tailscale
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
   name: easy-swu-minio-backups
   labels:
     app.kubernetes.io/name: easy-swu-minio-backups

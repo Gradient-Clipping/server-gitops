@@ -68,6 +68,8 @@ administration interface; publishing payment support does not change that settin
 
 - `infrastructure/ingress`: the bundled K3s Traefik chart, exposed only on the
   loopback NodePort `32080` for the host Nginx TLS edge.
+- `infrastructure/tailscale`: the shared campus HTTP/HTTPS proxy, retained device
+  state, and opt-in namespace/Pod access boundary. See [shared Tailscale](config/SHARED_TAILSCALE.md).
 - `infrastructure/mysql`: the cluster-wide MySQL 8.4 LTS service, retained data
   and backup volumes, and a daily logical backup job.
 - `infrastructure/identity`: Keycloak, Identity Bridge, the `lazycampus` realm,
@@ -92,7 +94,7 @@ administration interface; publishing payment support does not change that settin
   exports, logs, and Redis volumes.
 - `apps/easy-swu`: `easy-api.lazycampus.com` and
   `easy-admin.lazycampus.com`, including the mini-program API, management UI,
-  Redis, MinIO, a persistent Tailscale userspace gateway, and MinIO backups.
+  Redis, MinIO, and MinIO backups; campus traffic uses the shared Tailscale proxy.
 - `apps/status-page`: the anonymous public service status page at
   `status.lazycampus.com`, built from `Gradient-Clipping/lazycampus-status`.
   Its catalog presents core projects and their expandable services; internal
@@ -147,7 +149,8 @@ reclaim policy, and the following host paths:
 - `/srv/k3s-data/mysql`
 - `/srv/k3s-data/easy-swu/redis`
 - `/srv/k3s-data/easy-swu/minio`
-- `/srv/k3s-data/easy-swu/tailscale`
+- `/srv/k3s-data/tailscale` (shared gateway)
+- `/srv/k3s-data/easy-swu/tailscale` (offline migration recovery copy)
 - `/srv/k3s-backups/mysql`
 - `/srv/k3s-backups/easy-swu-minio`
 
@@ -228,7 +231,7 @@ to Identity Bridge through its outbox.
 ## Easy SWU
 
 Before the first Easy SWU reconciliation, run the identity bootstrap so the
-`easy-swu-admin` OIDC client exists, then place the Baidu Maps and Tailscale
+`easy-swu-admin` OIDC client exists, then place the Baidu Maps
 values in the root-only files documented by
 `scripts/bootstrap-easy-swu-secrets.sh`. Install and run the idempotent
 bootstrap:
@@ -247,10 +250,11 @@ The management UI has no application-local login. It redirects to Keycloak and
 the API accepts only the `ystemsrx` OIDC identity with the `platform-admin`
 realm role.
 
-The Tailscale sidecar uses userspace networking and exposes only a loopback HTTP
-proxy to the API container. Its state survives Pod recreation under
-`/srv/k3s-data/easy-swu/tailscale`; DNS takeover is disabled so Kubernetes
-service discovery continues to use CoreDNS. Redis contains sessions and cache,
+The API connects to the shared `tailscale-proxy.tailscale-system.svc.cluster.local`
+userspace HTTP proxy on port 1055 and its health endpoint on port 9002. The gateway
+has its own release lifecycle and retained state; Kubernetes DNS continues to use
+CoreDNS. Bootstrap, migration, access labels and verification are documented in
+[shared Tailscale](config/SHARED_TAILSCALE.md). Redis contains sessions and cache,
 while MinIO contains calendars and publication media. MinIO is mirrored daily
 to `/srv/k3s-backups/easy-swu-minio` with 14-day retention; the shared MySQL
 backup includes the `easy_swu` database.
@@ -289,8 +293,10 @@ The following Kubernetes secrets are intentionally created out of band and are n
 - `easy-swu/mysql-easy-swu`: the dedicated shared-MySQL connection values.
 - `easy-swu/easy-swu-runtime`: API, OIDC client, MinIO, Baidu Maps, and Identity
   Bridge synchronization values.
-- `easy-swu/easy-swu-tailscale`: the Tailscale enrollment key used only by the
-  campus-network sidecar.
+- `tailscale-system/tailscale-auth`: the shared gateway enrollment key.
+- `tailscale-system/tcr-auth`: the shared gateway registry pull credential.
+- `easy-swu/easy-swu-tailscale`: retained legacy enrollment material for migration
+  recovery; new deployments do not reference it.
 
 K3s encrypts Kubernetes secrets at rest. Their recovery material is stored root-only on the server and must be included in server backups.
 

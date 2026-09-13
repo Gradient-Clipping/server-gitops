@@ -30,7 +30,6 @@ required_files=(
   "${SECRET_DIR}/easy-swu-admin-oidc-client-secret"
   "${SECRET_DIR}/easy-swu-baidu-map-ak"
   "${SECRET_DIR}/easy-swu-baidu-map-sk"
-  "${SECRET_DIR}/easy-swu-tailscale-auth-key"
   "${SECRET_DIR}/easy-swu-identity-sync-token"
 )
 
@@ -48,19 +47,18 @@ ${KUBECTL} create namespace "${NAMESPACE}" --dry-run=client -o yaml \
 ${KUBECTL} label namespace "${NAMESPACE}" \
   app.kubernetes.io/part-of=easy-swu \
   platform.lazycampus.com/identity-client=true \
+  platform.lazycampus.com/campus-network-client=true \
   pod-security.kubernetes.io/enforce=restricted \
   --overwrite >/dev/null
 
 install -d -m 0750 -o 999 -g 999 /srv/k3s-data/easy-swu/redis
 install -d -m 0750 -o 1000 -g 1000 /srv/k3s-data/easy-swu/minio
-install -d -m 0700 -o 1000 -g 1000 /srv/k3s-data/easy-swu/tailscale
 install -d -m 0750 -o 1000 -g 1000 /srv/k3s-backups/easy-swu-minio
 
 docker_config="$(mktemp)"
 runtime_env="$(mktemp)"
-tailscale_env="$(mktemp)"
 cleanup() {
-  rm -f -- "${docker_config}" "${runtime_env}" "${tailscale_env}"
+  rm -f -- "${docker_config}" "${runtime_env}"
 }
 trap cleanup EXIT
 
@@ -97,13 +95,12 @@ if [[ ! -x "${provision_script}" ]]; then
 fi
 "${provision_script}" easy_swu "${NAMESPACE}" mysql-easy-swu easy_swu_app
 
-python3 - "${runtime_env}" "${tailscale_env}" "${SECRET_DIR}" <<'PY'
+python3 - "${runtime_env}" "${SECRET_DIR}" <<'PY'
 import pathlib
 import sys
 
 runtime_path = pathlib.Path(sys.argv[1])
-tailscale_path = pathlib.Path(sys.argv[2])
-secret_dir = pathlib.Path(sys.argv[3])
+secret_dir = pathlib.Path(sys.argv[2])
 
 def read(name: str) -> str:
     value = (secret_dir / name).read_text(encoding="utf-8").strip()
@@ -120,24 +117,14 @@ runtime_values = {
     "MINIO_SECRET_KEY": read("easy-swu-minio-secret-key"),
     "IDENTITY_BRIDGE_SYNC_TOKEN": read("easy-swu-identity-sync-token"),
 }
-tailscale_values = {
-    "TS_AUTHKEY": read("easy-swu-tailscale-auth-key"),
-}
-
-for path, values in ((runtime_path, runtime_values), (tailscale_path, tailscale_values)):
-    path.write_text(
-        "".join(f"{key}={value}\n" for key, value in values.items()),
-        encoding="utf-8",
-    )
+runtime_path.write_text(
+    "".join(f"{key}={value}\n" for key, value in runtime_values.items()),
+    encoding="utf-8",
+)
 PY
 
 ${KUBECTL} --namespace "${NAMESPACE}" create secret generic easy-swu-runtime \
   --from-env-file="${runtime_env}" \
   --dry-run=client -o yaml \
   | ${KUBECTL} apply -f - >/dev/null
-${KUBECTL} --namespace "${NAMESPACE}" create secret generic easy-swu-tailscale \
-  --from-env-file="${tailscale_env}" \
-  --dry-run=client -o yaml \
-  | ${KUBECTL} apply -f - >/dev/null
-
 echo "Easy SWU database, storage directories, registry access, and runtime secrets are ready."

@@ -5,4 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/part-of: easy-swu
     platform.lazycampus.com/identity-client: "true"
+    platform.lazycampus.com/campus-network-client: "true"
     pod-security.kubernetes.io/enforce: restricted
