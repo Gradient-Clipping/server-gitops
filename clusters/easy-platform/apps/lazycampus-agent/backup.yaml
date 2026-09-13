@@ -30,7 +30,7 @@ spec:
             seccompProfile: {type: RuntimeDefault}
           containers:
             - name: backup
-              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34749886593 # {"$imagepolicy": "flux-system:agent-backend"}
+              image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.34753220594 # {"$imagepolicy": "flux-system:agent-backend"}
               command: [python, /scripts/backup_agent.py]
               resources:
                 requests: {cpu: 30m, memory: 64Mi}
