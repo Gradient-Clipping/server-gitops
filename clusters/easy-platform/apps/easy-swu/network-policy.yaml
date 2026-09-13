@@ -57,6 +57,18 @@ spec:
           protocol: TCP
   egress:
     - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: tailscale-proxy
+      ports:
+        - port: 1055
+          protocol: TCP
+        - port: 9002
+          protocol: TCP
+    - to:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: easy-swu-redis

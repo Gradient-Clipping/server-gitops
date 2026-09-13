@@ -16,6 +16,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: easy-swu-api
+        platform.lazycampus.com/campus-network-client: "true"
     spec:
       automountServiceAccountToken: false
       imagePullSecrets:
@@ -92,9 +93,9 @@ spec:
             - name: SWU_SESSION_MAX_ENTRIES
               value: "500"
             - name: TAILSCALE_PROXY_URL
-              value: http://127.0.0.1:1055
+              value: http://tailscale-proxy.tailscale-system.svc.cluster.local:1055
             - name: TAILSCALE_HEALTH_URL
-              value: http://127.0.0.1:9002/healthz
+              value: http://tailscale-proxy.tailscale-system.svc.cluster.local:9002/healthz
             - name: IDENTITY_BRIDGE_URL
               value: http://identity-bridge.identity-system.svc.cluster.local:3000
           ports:
@@ -138,73 +139,10 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
-        - name: tailscale
-          image: ccr.ccs.tencentyun.com/lazycampus/tailscale:1.102.3@sha256:1b8596d535841065b0510c797b60bc5f1e43b1804eee7626d315581dcb60b778
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: TS_AUTHKEY
-              valueFrom:
-                secretKeyRef:
-                  name: easy-swu-tailscale
-                  key: TS_AUTHKEY
-            - name: TS_AUTH_ONCE
-              value: "true"
-            - name: TS_STATE_DIR
-              value: /var/lib/tailscale
-            - name: TS_KUBE_SECRET
-              value: ""
-            - name: TS_USERSPACE
-              value: "true"
-            - name: TS_ACCEPT_DNS
-              value: "false"
-            - name: TS_EXTRA_ARGS
-              value: --accept-routes --shields-up
-            - name: TS_OUTBOUND_HTTP_PROXY_LISTEN
-              value: 127.0.0.1:1055
-            - name: TS_ENABLE_HEALTH_CHECK
-              value: "true"
-            - name: TS_ENABLE_METRICS
-              value: "true"
-            - name: TS_LOCAL_ADDR_PORT
-              value: 127.0.0.1:9002
-            - name: TS_HOSTNAME
-              value: easy-swu-campus-gateway
-          volumeMounts:
-            - name: tailscale-state
-              mountPath: /var/lib/tailscale
-            - name: tailscale-run
-              mountPath: /var/run/tailscale
-            - name: tailscale-tmp
-              mountPath: /tmp
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 500m
-              memory: 384Mi
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            runAsGroup: 1000
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            readOnlyRootFilesystem: true
       volumes:
         - name: api-tmp
           emptyDir:
             sizeLimit: 512Mi
-        - name: tailscale-state
-          persistentVolumeClaim:
-            claimName: easy-swu-tailscale
-        - name: tailscale-run
-          emptyDir:
-            sizeLimit: 16Mi
-        - name: tailscale-tmp
-          emptyDir:
-            sizeLimit: 64Mi
 ---
 apiVersion: v1
 kind: Service

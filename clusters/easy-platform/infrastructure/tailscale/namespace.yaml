@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tailscale-system
+  labels:
+    app.kubernetes.io/part-of: easy-platform
+    pod-security.kubernetes.io/enforce: restricted

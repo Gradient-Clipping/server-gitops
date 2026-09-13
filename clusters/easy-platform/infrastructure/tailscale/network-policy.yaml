@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tailscale-default-deny
+  namespace: tailscale-system
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tailscale-proxy-access
+  namespace: tailscale-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tailscale-proxy
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        # Both the namespace AND the calling Pod must be opted in.
+        - namespaceSelector:
+            matchLabels:
+              platform.lazycampus.com/campus-network-client: "true"
+          podSelector:
+            matchLabels:
+              platform.lazycampus.com/campus-network-client: "true"
+      ports:
+        - port: 1055
+          protocol: TCP
+        - port: 9002
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # HTTPS control/DERP, HTTP captive-portal checks, and UDP peer/STUN traffic.
+    # Keep the existing gateway's transport policy; campus grants live in tailnet.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+        - port: 1
+          endPort: 65535
+          protocol: UDP

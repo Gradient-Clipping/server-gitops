@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: platform-tailscale
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: platform-tailscale-hostpath
+  hostPath:
+    # Directory must be prepared offline by bootstrap_shared_tailscale.py.
+    # Never use DirectoryOrCreate: an empty volume could enroll a second device.
+    path: /srv/k3s-data/tailscale
+    type: Directory
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - easy-platform-1
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: platform-tailscale
+  namespace: tailscale-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: platform-tailscale-hostpath
+  volumeName: platform-tailscale
