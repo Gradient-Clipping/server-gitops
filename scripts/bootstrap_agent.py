@@ -141,6 +141,8 @@ def provision(values):
     }
     for name, keys in sets.items():
         apply_secret(name, {key: values[key] for key in keys})
+    if values.get("GITHUB_READ_TOKEN"):
+        apply_secret("agent-github", {"GITHUB_READ_TOKEN": values["GITHUB_READ_TOKEN"]})
     secret_dir = Path("/etc/platform-secrets")
     username = (secret_dir / "tcr-username").read_text().strip()
     password = (secret_dir / "tcr-password").read_text().strip()
