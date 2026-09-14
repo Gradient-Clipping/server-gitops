@@ -28,7 +28,7 @@ metadata:
   name: wecom-kf-workers
   namespace: wecom-kf
 spec:
-  replicas: 0
+  replicas: 1
   strategy:
     type: Recreate
   selector:

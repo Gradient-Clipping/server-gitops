@@ -111,21 +111,25 @@ administration interface; publishing payment support does not change that settin
   `status-sender` Kubernetes Secret. The database joins the existing all-database
   backup. This same-host status page does not provide off-host outage monitoring.
 
-- `apps/educoder-wecom`: callback-only WeChat Customer Service receiver at
+- `apps/wecom-kf`: WeChat Customer Service platform in namespace `wecom-kf`, at
   `kf.lazycampus.com/callbacks/wecom/kf`, from the private
   `Gradient-Clipping/wecom-kf` source repository. Uses its own
-  `educoder_wecom` MySQL database for encrypted, deduplicated event notifications.
-  No chat synchronization, reply sender, exercise executor or frontend is enabled.
-  Future web UI is administrator-only. Run `scripts/bootstrap-educoder-wecom.sh
+  `educoder_wecom` MySQL database for durable notifications, conversations and jobs.
+  Gateway, action and execution workers provide reply menus and confirmed tasks;
+  `/admin` uses automatic SSO and requires the `platform-admin` role.
+  Run `scripts/bootstrap-educoder-wecom.sh
   --runtime-only` from a committed checkout before the first rollout, then run
   without that flag for Nginx and its scoped EdgeOne rule. Supply root-only
   `educoder-wecom-corp-id`, `educoder-wecom-callback-token` and
-  `educoder-wecom-aes-key` under `/etc/platform-secrets`. An API Secret is not
-  required for verification and placeholder credentials must not be deployed.
+  `educoder-wecom-aes-key` under `/etc/platform-secrets`. The full service also
+  requires the API Secret, DeepSeek configuration and persistent encryption/SSO
+  keys handled by `scripts/bootstrap-wecom-kf-runtime.py`.
   The bootstrap generates a dedicated origin key. Callback access logging and
-  edge caching are disabled; Pod egress is restricted to DNS and MySQL.
-  Internal resource names are retained from bootstrap; source and public identity
-  are the generic `wecom-kf` platform. After `kf.lazycampus.com` is healthy,
+  edge caching are disabled; Pod egress permits DNS, MySQL and public HTTPS.
+  Database, Secret and image identifiers are retained from bootstrap. The namespace
+  migration preserves runtime keys, shared MySQL data and the bank PVC contents;
+  see `scripts/wecom-namespace-migration.md` for backups and recovery.
+  After `kf.lazycampus.com` is healthy,
   `scripts/retire_wecom_previous_domain.py --apply` can retire only the original
   `educoder.lazycampus.com` DNS/EdgeOne resources, after checking ownership and
   backing up their exact definitions. It never deletes database or workload data.
