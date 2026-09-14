@@ -97,3 +97,23 @@ SELECT
 FROM `agent_source_database`.`wecom_callback_inbox`;
 
 GRANT SELECT ON `agent_source_database`.`agent_callback_events` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`content_redacted`, `content_text`, `content_truncated`, `created_at`, `customer_id`, `direction`, `id`, `message_id`, `message_type`, `open_kfid`, `outbox_id`, `sent_at`) ON `agent_source_database`.`kf_message_history` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_message_history` AS
+SELECT
+  `id` AS `id`,
+  `customer_id` AS `customer_id`,
+  `open_kfid` AS `open_kfid`,
+  `direction` AS `direction`,
+  `message_id` AS `message_id`,
+  `outbox_id` AS `outbox_id`,
+  `message_type` AS `message_type`,
+  `content_text` AS `content_text`,
+  `content_redacted` AS `content_redacted`,
+  `content_truncated` AS `content_truncated`,
+  `sent_at` AS `sent_at`,
+  `created_at` AS `created_at`
+FROM `agent_source_database`.`kf_message_history`;
+
+GRANT SELECT ON `agent_source_database`.`agent_message_history` TO 'agent_snapshot'@'%';
