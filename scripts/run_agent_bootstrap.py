@@ -68,7 +68,7 @@ def main():
         if (ROOT / name).read_bytes().replace(b"\r\n", b"\n") != expected.replace(b"\r\n", b"\n"):
             raise ValueError("Local runner or gate differs from the validated production commit")
     archive = run(["git", "archive", "--format=tar", args.revision,
-                   "scripts/bootstrap_agent.py", "host/agent", "host/k3s/config.yaml", "config/agent-views.sql", "config/agent-open-platform-views.sql"], binary=True)
+                   "scripts/bootstrap_agent.py", "host/agent", "host/k3s/config.yaml", "config/agent-views.sql", "config/agent-open-platform-views.sql", "config/agent-wecom-kf-views.sql"], binary=True)
     remote = "/var/lib/platform-gitops/" + args.revision
     ssh = [shutil.which("ssh.exe") or "ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15", SERVER]
     if args.runtime_archive:

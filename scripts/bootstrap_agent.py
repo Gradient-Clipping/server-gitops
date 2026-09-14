@@ -162,13 +162,14 @@ def provision_snapshot_views():
     for prefix, namespace, secret, views in (
         ("EASY_CAMPUS", "easy-swu", "mysql-easy-swu", "agent-views.sql"),
         ("OPEN_PLATFORM", "open-platform", "mysql-platform", "agent-open-platform-views.sql"),
+        ("WECOM_KF", "educoder-wecom", "mysql-educoder-wecom", "agent-wecom-kf-views.sql"),
     ):
         source = json.loads(kubectl("get", "secret", secret, "-n", namespace, "-o", "json"))["data"]
         database = base64.b64decode(source["MYSQL_DATABASE"]).decode()
         if not re.fullmatch(r"[a-zA-Z0-9_]+", database):
             raise ValueError("Unexpected source database identifier")
         sources.append((prefix, database, (ROOT / "config" / views).read_text(encoding="utf-8").replace("`agent_source_database`", "`" + database + "`")))
-    # Check both source schemas before replacing any existing grants or credentials.
+    # Check every source schema before replacing any existing grants or credentials.
     preflight = []
     for _, _, views in sources:
         columns = re.findall(r"^GRANT SELECT \(([^)]+)\) ON (`\w+`\.`\w+`) TO 'agent_view_owner'@'localhost';$", views, re.MULTILINE)

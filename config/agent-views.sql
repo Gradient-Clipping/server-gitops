@@ -187,3 +187,123 @@ SELECT
 FROM `agent_source_database`.`publication_receipts`;
 
 GRANT SELECT ON `agent_source_database`.`agent_publication_receipts` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`amount_cents`, `created_at`, `credited_at`, `id`, `paid_amount_cents`, `paid_at`, `payment_channel`, `payment_env`, `plan_code`, `plan_name`, `provider`, `quota_amount`, `quota_unit`, `refunded_cents`, `status`, `updated_at`, `user_id`) ON `agent_source_database`.`course_grab_orders` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_orders` AS
+SELECT
+  `id` AS `id`,
+  `user_id` AS `user_id`,
+  `plan_code` AS `plan_code`,
+  `plan_name` AS `plan_name`,
+  `quota_unit` AS `quota_unit`,
+  `quota_amount` AS `quota_amount`,
+  `amount_cents` AS `amount_cents`,
+  `paid_amount_cents` AS `paid_amount_cents`,
+  `refunded_cents` AS `refunded_cents`,
+  `status` AS `status`,
+  `provider` AS `provider`,
+  `payment_channel` AS `payment_channel`,
+  `payment_env` AS `payment_env`,
+  `paid_at` AS `paid_at`,
+  `credited_at` AS `credited_at`,
+  `created_at` AS `created_at`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`course_grab_orders`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_orders` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`amount_cents`, `created_at`, `id`, `last_error`, `order_id`, `quota_amount`, `status`, `succeeded_at`, `updated_at`) ON `agent_source_database`.`course_grab_refunds` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_refunds` AS
+SELECT
+  `id` AS `id`,
+  `order_id` AS `order_id`,
+  `status` AS `status`,
+  `amount_cents` AS `amount_cents`,
+  `quota_amount` AS `quota_amount`,
+  `last_error` AS `last_error`,
+  `succeeded_at` AS `succeeded_at`,
+  `created_at` AS `created_at`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`course_grab_refunds`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_refunds` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`enabled`, `id`, `updated_at`, `version`) ON `agent_source_database`.`course_grab_settings` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_settings` AS
+SELECT
+  `id` AS `id`,
+  `enabled` AS `enabled`,
+  `version` AS `version`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`course_grab_settings`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_settings` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`created_at`, `enabled`, `generation`, `id`, `negative_keywords`, `positive_keywords`, `preferred_enabled`, `result_code`, `scheduled_at`, `search_keywords`, `selected_course`, `source_timezone`, `state`, `updated_at`, `user_id`) ON `agent_source_database`.`course_grab_tasks` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_tasks` AS
+SELECT
+  `id` AS `id`,
+  `user_id` AS `user_id`,
+  `scheduled_at` AS `scheduled_at`,
+  `source_timezone` AS `source_timezone`,
+  `preferred_enabled` AS `preferred_enabled`,
+  `enabled` AS `enabled`,
+  `state` AS `state`,
+  `result_code` AS `result_code`,
+  `generation` AS `generation`,
+  `created_at` AS `created_at`,
+  `updated_at` AS `updated_at`,
+  `search_keywords` AS `search_keywords`,
+  `positive_keywords` AS `positive_keywords`,
+  `negative_keywords` AS `negative_keywords`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`selected_course`, '$.sectionId')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`selected_course`, '$.sectionId')) ELSE NULL END AS `selected_section_id`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`selected_course`, '$.courseName')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`selected_course`, '$.courseName')) ELSE NULL END AS `selected_course_name`
+FROM `agent_source_database`.`course_grab_tasks`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_tasks` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`id`, `order_id`, `source_change_id`, `state`, `task_id`, `updated_at`, `user_id`) ON `agent_source_database`.`course_grab_units` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_units` AS
+SELECT
+  `id` AS `id`,
+  `order_id` AS `order_id`,
+  `user_id` AS `user_id`,
+  `state` AS `state`,
+  `task_id` AS `task_id`,
+  `source_change_id` AS `source_change_id`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`course_grab_units`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_units` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`created_at`, `created_by`, `id`, `input_json`, `kind`, `result_json`) ON `agent_source_database`.`course_grab_quota_changes` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_quota_changes` AS
+SELECT
+  `id` AS `id`,
+  `kind` AS `kind`,
+  `created_by` AS `created_by`,
+  `created_at` AS `created_at`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`input_json`, '$.operation')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`input_json`, '$.operation')) ELSE NULL END AS `operation`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`input_json`, '$.quotaAmount')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`input_json`, '$.quotaAmount')) ELSE NULL END AS `quota_amount`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`result_json`, '$.recipientCount')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`result_json`, '$.recipientCount')) ELSE NULL END AS `recipient_count`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`result_json`, '$.totalUses')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`result_json`, '$.totalUses')) ELSE NULL END AS `total_uses`
+FROM `agent_source_database`.`course_grab_quota_changes`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_quota_changes` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`change_id`, `delta`, `user_id`) ON `agent_source_database`.`course_grab_quota_change_users` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_quota_change_users` AS
+SELECT
+  `change_id` AS `change_id`,
+  `user_id` AS `user_id`,
+  `delta` AS `delta`
+FROM `agent_source_database`.`course_grab_quota_change_users`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_grab_quota_change_users` TO 'agent_snapshot'@'%';
