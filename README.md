@@ -124,6 +124,11 @@ administration interface; publishing payment support does not change that settin
   required for verification and placeholder credentials must not be deployed.
   The bootstrap generates a dedicated origin key. Callback access logging and
   edge caching are disabled; Pod egress is restricted to DNS and MySQL.
+  Internal resource names are retained from bootstrap; source and public identity
+  are the generic `wecom-kf` platform. After `kf.lazycampus.com` is healthy,
+  `scripts/retire_wecom_previous_domain.py --apply` can retire only the original
+  `educoder.lazycampus.com` DNS/EdgeOne resources, after checking ownership and
+  backing up their exact definitions. It never deletes database or workload data.
 
 Domains are declared in each application's `ingress.yaml`. An Ingress with
 `platform.lazycampus.com/domain-automation: enabled` is reconciled every minute.

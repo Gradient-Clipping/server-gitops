@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reconcile only the EduCoder WeCom's EdgeOne rule; never log secret values."""
+"""Reconcile only the shared WeCom callback EdgeOne rule; never log secrets."""
 from __future__ import annotations
 
 import argparse
@@ -88,9 +88,9 @@ def main() -> None:
             return actual == expected
 
         if not matches or not includes(matches[0], desired):
-            print("EduCoder WeCom EdgeOne rule is missing or differs from the versioned configuration.", file=sys.stderr)
+            print("WeCom KF EdgeOne rule is missing or differs from the versioned configuration.", file=sys.stderr)
             sys.exit(1)
-        print("EduCoder WeCom EdgeOne rule verified: enabled, no cache, authenticated origin, real client IP.")
+        print("WeCom KF EdgeOne rule verified: enabled, no cache, authenticated origin, real client IP.")
         return
     if not args.apply:
         print(json.dumps({"host": "kf.lazycampus.com", "action": "update" if matches else "create", "cache": "disabled", "origin_key": "redacted"}))
@@ -100,7 +100,7 @@ def main() -> None:
         client.call("teo", "ModifyL7AccRule", {"ZoneId": ZONE, "Rule": desired})
     else:
         client.call("teo", "CreateL7AccRules", {"ZoneId": ZONE, "Rules": [desired]})
-    print("EduCoder WeCom EdgeOne cache and origin authentication rule applied.")
+    print("WeCom KF EdgeOne cache and origin authentication rule applied.")
 
 
 if __name__ == "__main__":

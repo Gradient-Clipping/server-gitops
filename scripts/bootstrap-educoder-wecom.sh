@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restore only EduCoder callback dependencies from a committed GitOps checkout.
+# Restore shared WeCom callback dependencies from a committed GitOps checkout.
 set -euo pipefail
 umask 077
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -36,7 +36,7 @@ k3s kubectl -n educoder-wecom create secret generic tcr-auth \
   --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson="$docker_config" \
   --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
 if [[ "${1:-}" == "--runtime-only" ]]; then
-  echo 'EduCoder WeCom runtime credentials and database are ready.'
+  echo 'WeCom KF runtime credentials and database are ready.'
   exit 0
 fi
 install -d -m 0700 /etc/nginx/private/educoder-origin-keys
@@ -66,4 +66,4 @@ if ! nginx -t; then
 fi
 systemctl reload nginx
 python3 "${ROOT}/scripts/reconcile-educoder-edge.py" --apply
-echo 'EduCoder WeCom host routing, edge rules and runtime dependencies are ready.'
+echo 'WeCom KF host routing, edge rules and runtime dependencies are ready.'
