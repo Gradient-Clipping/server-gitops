@@ -11,6 +11,13 @@ spec:
     - host: kf.lazycampus.com
       http:
         paths:
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: educoder-wecom
+                port:
+                  name: http
           - path: /callbacks/wecom/kf
             pathType: Exact
             backend:

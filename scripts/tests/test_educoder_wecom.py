@@ -36,13 +36,14 @@ class CallbackDeploymentTests(unittest.TestCase):
             edge.desired_rule("not-a-valid-secret")
         self.assertNotIn("not-a-valid-secret", str(error.exception))
 
-    def test_no_frontend_or_external_api_egress_in_callback_release(self):
+    def test_admin_and_public_https_keep_callback_exact_and_origin_protected(self):
         base = ROOT / "clusters/easy-platform/apps/educoder-wecom"
         ingress = (base / "ingress.yaml").read_text()
-        self.assertNotIn("Prefix", ingress)
-        self.assertNotIn("/admin", ingress)
+        self.assertIn("/admin", ingress)
+        self.assertIn("path: /callbacks/wecom/kf\n            pathType: Exact", ingress)
         network = (base / "network-policy.yaml").read_text()
-        self.assertNotIn("443", network)
+        self.assertIn("443", network)
+        self.assertIn("169.254.0.0/16", network)
         nginx = (ROOT / "host/nginx/educoder-wecom").read_text()
         self.assertIn("access_log off;", nginx)
         self.assertIn("return 403;", nginx)

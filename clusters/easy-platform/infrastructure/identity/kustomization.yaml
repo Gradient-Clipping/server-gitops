@@ -12,3 +12,4 @@ resources:
   - open-platform.yaml
   - status-page.yaml
   - agent-admin.yaml
+  - wecom-kf.yaml

@@ -1,0 +1,280 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wecom-kf-oidc-config
+  namespace: identity-system
+data:
+  client.json: |-
+    {
+      "clientId": "lazycampus-wecom-kf",
+      "name": "LaZy WeCom KF",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "publicClient": false,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "redirectUris": [
+        "https://kf.lazycampus.com/admin/auth/callback"
+      ],
+      "webOrigins": [
+        "https://kf.lazycampus.com"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        
+        
+        
+        
+        "client.session.idle.timeout": "1800",
+        "client.session.max.lifespan": "28800"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "roles",
+        "basic"
+      ],
+      "optionalClientScopes": []
+    }
+  realm-roles.json: |
+    {
+      "name": "realm-roles",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usermodel-realm-role-mapper",
+      "consentRequired": false,
+      "config": {
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "jsonType.label": "String",
+        "claim.name": "realm_access.roles",
+        "multivalued": "true"
+      }
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wecom-kf-oidc-bootstrap-v1
+  namespace: identity-system
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wecom-kf-oidc-reconciler
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: tcr-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: reconcile
+          image: ccr.ccs.tencentyun.com/lazycampus/keycloak:26.7.1@sha256:14a382edabb24f92e437911239f8bb344bd7b7612a03949b5b4a45278008a408
+          command:
+            - /bin/bash
+            - -ec
+          args:
+            - |
+              
+              set -euo pipefail
+              trap 'rm -f /tmp/kcadm.config' EXIT
+              /opt/keycloak/bin/kcadm.sh config credentials --config /tmp/kcadm.config --server http://keycloak:8080 --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1
+              kc() { /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config --target-realm lazycampus; }
+              client_id="$(kc get clients -q clientId=lazycampus-wecom-kf --fields id --format csv --noquotes | tail -n 1)"
+              if [[ -z "$client_id" ]]; then
+                kc create clients --file /config/client.json >/dev/null
+                client_id="$(kc get clients -q clientId=lazycampus-wecom-kf --fields id --format csv --noquotes | tail -n 1)"
+              else
+                kc update "clients/$client_id" --file /config/client.json --merge >/dev/null
+              fi
+              test -n "$client_id"
+              kc update "clients/$client_id" --set "secret=$OIDC_CLIENT_SECRET" >/dev/null
+              for name in realm-roles; do
+                mapper_id="$(kc get "clients/$client_id/protocol-mappers/models" --fields id,name --format csv --noquotes | sed -n "s/^\([^,]*\),$name$/\1/p" | head -n 1)"
+                if [[ -z "$mapper_id" ]]; then
+                  kc create "clients/$client_id/protocol-mappers/models" --file "/config/$name.json" >/dev/null
+                else
+                  kc update "clients/$client_id/protocol-mappers/models/$mapper_id" --file "/config/$name.json" --set "id=$mapper_id" >/dev/null
+                fi
+              done
+              echo 'WeCom KF OIDC client reconciled.'
+          env:
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-runtime
+                  key: KC_BOOTSTRAP_ADMIN_USERNAME
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-runtime
+                  key: KC_BOOTSTRAP_ADMIN_PASSWORD
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: wecom-kf-oidc-secret
+                  key: OIDC_CLIENT_SECRET
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: config
+          configMap:
+            name: wecom-kf-oidc-config
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wecom-kf-oidc-reconciler
+  namespace: identity-system
+spec:
+  schedule: 29 * * * *
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: wecom-kf-oidc-reconciler
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          imagePullSecrets:
+            - name: tcr-auth
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: reconcile
+              image: ccr.ccs.tencentyun.com/lazycampus/keycloak:26.7.1@sha256:14a382edabb24f92e437911239f8bb344bd7b7612a03949b5b4a45278008a408
+              command:
+                - /bin/bash
+                - -ec
+              args:
+                - |
+                  
+                  set -euo pipefail
+                  trap 'rm -f /tmp/kcadm.config' EXIT
+                  /opt/keycloak/bin/kcadm.sh config credentials --config /tmp/kcadm.config --server http://keycloak:8080 --realm master --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1
+                  kc() { /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config --target-realm lazycampus; }
+                  client_id="$(kc get clients -q clientId=lazycampus-wecom-kf --fields id --format csv --noquotes | tail -n 1)"
+                  if [[ -z "$client_id" ]]; then
+                    kc create clients --file /config/client.json >/dev/null
+                    client_id="$(kc get clients -q clientId=lazycampus-wecom-kf --fields id --format csv --noquotes | tail -n 1)"
+                  else
+                    kc update "clients/$client_id" --file /config/client.json --merge >/dev/null
+                  fi
+                  test -n "$client_id"
+                  kc update "clients/$client_id" --set "secret=$OIDC_CLIENT_SECRET" >/dev/null
+                  for name in realm-roles; do
+                    mapper_id="$(kc get "clients/$client_id/protocol-mappers/models" --fields id,name --format csv --noquotes | sed -n "s/^\([^,]*\),$name$/\1/p" | head -n 1)"
+                    if [[ -z "$mapper_id" ]]; then
+                      kc create "clients/$client_id/protocol-mappers/models" --file "/config/$name.json" >/dev/null
+                    else
+                      kc update "clients/$client_id/protocol-mappers/models/$mapper_id" --file "/config/$name.json" --set "id=$mapper_id" >/dev/null
+                    fi
+                  done
+                  echo 'WeCom KF OIDC client reconciled.'
+              env:
+                - name: KC_BOOTSTRAP_ADMIN_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-runtime
+                      key: KC_BOOTSTRAP_ADMIN_USERNAME
+                - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-runtime
+                      key: KC_BOOTSTRAP_ADMIN_PASSWORD
+                - name: OIDC_CLIENT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: wecom-kf-oidc-secret
+                      key: OIDC_CLIENT_SECRET
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 384Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: config
+              configMap:
+                name: wecom-kf-oidc-config
+            - name: tmp
+              emptyDir:
+                sizeLimit: 32Mi
+      ttlSecondsAfterFinished: 3600
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wecom-kf-oidc-reconciler
+  namespace: identity-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: wecom-kf-oidc-reconciler
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - port: 8080
+          protocol: TCP

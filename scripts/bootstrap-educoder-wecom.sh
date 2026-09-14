@@ -17,11 +17,15 @@ fi
 chmod 0600 "$key_file"
 k3s kubectl apply -f "${ROOT}/clusters/easy-platform/apps/educoder-wecom/namespace.yaml" >/dev/null
 bash "${ROOT}/scripts/provision-mysql-database.sh" educoder_wecom educoder-wecom mysql-educoder-wecom educoder_wecom
+runtime_extra=()
+if [[ -s "${SECRET_DIR}/wecom-kf-data-key" ]]; then
+  runtime_extra+=(--from-file=DATA_ENCRYPTION_KEY="${SECRET_DIR}/wecom-kf-data-key")
+fi
 k3s kubectl -n educoder-wecom create secret generic educoder-wecom-runtime \
   --from-file=WECOM_CORP_ID="${SECRET_DIR}/educoder-wecom-corp-id" \
   --from-file=WECOM_CALLBACK_TOKEN="${SECRET_DIR}/educoder-wecom-callback-token" \
   --from-file=WECOM_ENCODING_AES_KEY="${SECRET_DIR}/educoder-wecom-aes-key" \
-  --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
+  "${runtime_extra[@]}" --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
 docker_config="$(mktemp /var/tmp/educoder-docker.XXXXXX)"
 trap 'rm -f -- "$docker_config"' EXIT
 python3 - "$docker_config" "$SECRET_DIR" <<'PY'
@@ -36,6 +40,9 @@ k3s kubectl -n educoder-wecom create secret generic tcr-auth \
   --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson="$docker_config" \
   --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
 if [[ "${1:-}" == "--runtime-only" ]]; then
+  if [[ -s "${SECRET_DIR}/wecom-kf-api-secret" ]]; then
+    python3 "${ROOT}/scripts/bootstrap-wecom-kf-runtime.py"
+  fi
   echo 'WeCom KF runtime credentials and database are ready.'
   exit 0
 fi
@@ -65,5 +72,8 @@ if ! nginx -t; then
   exit 1
 fi
 systemctl reload nginx
+if [[ -s "${SECRET_DIR}/wecom-kf-api-secret" ]]; then
+  python3 "${ROOT}/scripts/bootstrap-wecom-kf-runtime.py"
+fi
 python3 "${ROOT}/scripts/reconcile-educoder-edge.py" --apply
 echo 'WeCom KF host routing, edge rules and runtime dependencies are ready.'

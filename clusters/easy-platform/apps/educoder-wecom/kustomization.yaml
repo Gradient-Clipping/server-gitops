@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - callback.yaml
+  - workers.yaml
   - ingress.yaml
   - network-policy.yaml
   - image-automation.yaml
