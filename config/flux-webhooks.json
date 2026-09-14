@@ -118,7 +118,7 @@
     },
     {
       "name": "github-educoder-wecom",
-      "repository": "Gradient-Clipping/educoder-wecom",
+      "repository": "Gradient-Clipping/wecom-kf",
       "branch": "main",
       "event": "workflow_run",
       "workflow": ".github/workflows/publish.yml",

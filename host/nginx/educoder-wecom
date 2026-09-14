@@ -7,7 +7,7 @@ map $http_x_educoder_origin_key $educoder_origin_authenticated {
 server {
     listen 80;
     listen [::]:80;
-    server_name educoder.lazycampus.com;
+    server_name kf.lazycampus.com;
     access_log off;
     error_log /dev/null crit;
     client_max_body_size 64k;

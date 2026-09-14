@@ -18,8 +18,23 @@ sys.path.insert(0, str(ROOT / "controller/domain-reconciler/src"))
 from domain_reconciler.reconciler import TencentCloudClient, TencentApiError  # noqa: E402
 
 ZONE = "zone-3solmvkeru39"
-NAME = "EduCoder WeCom Callback"
-CONDITION = "${http.request.host} in ['educoder.lazycampus.com']"
+NAME = "WeCom KF Callback"
+CONDITION = "${http.request.host} in ['kf.lazycampus.com']"
+LEGACY_NAME = "EduCoder WeCom Callback"
+LEGACY_CONDITION = "${http.request.host} in ['educoder.lazycampus.com']"
+
+
+def managed_rules(rules):
+    matches = [rule for rule in rules if rule.get("RuleName") in {NAME, LEGACY_NAME}]
+    if len(matches) > 1:
+        raise ValueError("Multiple matching rules; refusing an ambiguous update")
+    if matches:
+        rule = matches[0]
+        expected = LEGACY_CONDITION if rule["RuleName"] == LEGACY_NAME else CONDITION
+        branches = rule.get("Branches", [])
+        if len(branches) != 1 or branches[0].get("Condition") != expected:
+            raise ValueError("Existing rule includes unrelated traffic; refusing to overwrite")
+    return matches
 
 
 def desired_rule(origin_key: str) -> dict:
@@ -61,11 +76,7 @@ def main() -> None:
         offset += len(page)
         if not page or offset >= result.get("TotalCount", 0):
             break
-    matches = [rule for rule in rules if rule.get("RuleName") == NAME]
-    if len(matches) > 1:
-        raise ValueError("Multiple matching rules; refusing an ambiguous update")
-    if matches and any(branch.get("Condition") != CONDITION for branch in matches[0].get("Branches", [])):
-        raise ValueError("Existing rule includes unrelated traffic; refusing to overwrite")
+    matches = managed_rules(rules)
     desired = desired_rule(read("educoder-wecom-origin-key"))
     if args.check:
         # EdgeOne adds generated IDs and default fields to returned rules.
@@ -82,7 +93,7 @@ def main() -> None:
         print("EduCoder WeCom EdgeOne rule verified: enabled, no cache, authenticated origin, real client IP.")
         return
     if not args.apply:
-        print(json.dumps({"host": "educoder.lazycampus.com", "action": "update" if matches else "create", "cache": "disabled", "origin_key": "redacted"}))
+        print(json.dumps({"host": "kf.lazycampus.com", "action": "update" if matches else "create", "cache": "disabled", "origin_key": "redacted"}))
         return
     if matches:
         desired["RuleId"] = matches[0]["RuleId"]

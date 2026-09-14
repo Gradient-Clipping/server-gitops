@@ -9,11 +9,22 @@ spec.loader.exec_module(edge)
 
 
 class CallbackDeploymentTests(unittest.TestCase):
+    def test_previous_callback_rule_can_be_migrated_but_unrelated_hosts_cannot(self):
+        legacy = {"RuleName": edge.LEGACY_NAME, "RuleId": "rule-owned",
+                  "Branches": [{"Condition": edge.LEGACY_CONDITION}]}
+        self.assertEqual(edge.managed_rules([legacy]), [legacy])
+        current = edge.desired_rule("a" * 64)
+        with self.assertRaises(ValueError):
+            edge.managed_rules([legacy, current])
+        legacy["Branches"][0]["Condition"] = "${http.request.host} in ['unrelated.example']"
+        with self.assertRaises(ValueError):
+            edge.managed_rules([legacy])
+
     def test_edge_rule_is_host_scoped_and_disables_cache(self):
         rule = edge.desired_rule("a" * 64)
-        self.assertEqual(rule["RuleName"], "EduCoder WeCom Callback")
+        self.assertEqual(rule["RuleName"], "WeCom KF Callback")
         branch, = rule["Branches"]
-        self.assertEqual(branch["Condition"], "${http.request.host} in ['educoder.lazycampus.com']")
+        self.assertEqual(branch["Condition"], "${http.request.host} in ['kf.lazycampus.com']")
         actions = {action["Name"]: action for action in branch["Actions"]}
         self.assertEqual(actions["Cache"]["CacheParameters"], {"NoCache": {"Switch": "on"}})
         self.assertEqual(actions["OfflineCache"]["OfflineCacheParameters"], {"Switch": "off"})

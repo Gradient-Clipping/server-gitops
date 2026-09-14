@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: educoder.lazycampus.com
+    - host: kf.lazycampus.com
       http:
         paths:
           - path: /callbacks/wecom/kf

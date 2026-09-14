@@ -112,8 +112,8 @@ administration interface; publishing payment support does not change that settin
   backup. This same-host status page does not provide off-host outage monitoring.
 
 - `apps/educoder-wecom`: callback-only WeChat Customer Service receiver at
-  `educoder.lazycampus.com/callbacks/wecom/kf`, from the private
-  `Gradient-Clipping/educoder-wecom` source repository. Uses its own
+  `kf.lazycampus.com/callbacks/wecom/kf`, from the private
+  `Gradient-Clipping/wecom-kf` source repository. Uses its own
   `educoder_wecom` MySQL database for encrypted, deduplicated event notifications.
   No chat synchronization, reply sender, exercise executor or frontend is enabled.
   Future web UI is administrator-only. Run `scripts/bootstrap-educoder-wecom.sh
