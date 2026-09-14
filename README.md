@@ -111,6 +111,20 @@ administration interface; publishing payment support does not change that settin
   `status-sender` Kubernetes Secret. The database joins the existing all-database
   backup. This same-host status page does not provide off-host outage monitoring.
 
+- `apps/educoder-wecom`: callback-only WeChat Customer Service receiver at
+  `educoder.lazycampus.com/callbacks/wecom/kf`, from the private
+  `Gradient-Clipping/educoder-wecom` source repository. Uses its own
+  `educoder_wecom` MySQL database for encrypted, deduplicated event notifications.
+  No chat synchronization, reply sender, exercise executor or frontend is enabled.
+  Future web UI is administrator-only. Run `scripts/bootstrap-educoder-wecom.sh
+  --runtime-only` from a committed checkout before the first rollout, then run
+  without that flag for Nginx and its scoped EdgeOne rule. Supply root-only
+  `educoder-wecom-corp-id`, `educoder-wecom-callback-token` and
+  `educoder-wecom-aes-key` under `/etc/platform-secrets`. An API Secret is not
+  required for verification and placeholder credentials must not be deployed.
+  The bootstrap generates a dedicated origin key. Callback access logging and
+  edge caching are disabled; Pod egress is restricted to DNS and MySQL.
+
 Domains are declared in each application's `ingress.yaml`. An Ingress with
 `platform.lazycampus.com/domain-automation: enabled` is reconciled every minute.
 Hosts under `lazycampus.com` receive an EdgeOne acceleration domain, a

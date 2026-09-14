@@ -302,6 +302,32 @@
           }
         ]
       }
+    },
+    {
+      "apiVersion": "notification.toolkit.fluxcd.io/v1",
+      "kind": "Receiver",
+      "metadata": {
+        "name": "github-educoder-wecom",
+        "namespace": "flux-system"
+      },
+      "spec": {
+        "type": "github",
+        "events": [
+          "ping",
+          "workflow_run"
+        ],
+        "secretRef": {
+          "name": "flux-github-webhook-token"
+        },
+        "resourceFilter": "has(req.repository) && req.repository.full_name == \"Gradient-Clipping/educoder-wecom\" && has(req.action) && req.action == 'completed' && has(req.workflow_run) && req.workflow_run.status == 'completed' && req.workflow_run.conclusion == 'success' && req.workflow_run.event in ['push', 'workflow_dispatch'] && req.workflow_run.head_branch == \"main\" && req.workflow_run.head_repository.full_name == \"Gradient-Clipping/educoder-wecom\" && req.workflow_run.path == \".github/workflows/publish.yml\"",
+        "resources": [
+          {
+            "apiVersion": "image.toolkit.fluxcd.io/v1",
+            "kind": "ImageRepository",
+            "name": "educoder-wecom"
+          }
+        ]
+      }
     }
   ]
 }

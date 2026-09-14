@@ -115,6 +115,14 @@
         "agent-sandbox",
         "agent-astrbot"
       ]
+    },
+    {
+      "name": "github-educoder-wecom",
+      "repository": "Gradient-Clipping/educoder-wecom",
+      "branch": "main",
+      "event": "workflow_run",
+      "workflow": ".github/workflows/publish.yml",
+      "resources": ["educoder-wecom"]
     }
   ]
 }
