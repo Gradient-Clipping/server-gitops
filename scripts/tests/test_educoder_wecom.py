@@ -37,7 +37,7 @@ class CallbackDeploymentTests(unittest.TestCase):
         self.assertNotIn("not-a-valid-secret", str(error.exception))
 
     def test_admin_and_public_https_keep_callback_exact_and_origin_protected(self):
-        base = ROOT / "clusters/easy-platform/apps/educoder-wecom"
+        base = ROOT / "clusters/easy-platform/apps/wecom-kf"
         ingress = (base / "ingress.yaml").read_text()
         self.assertIn("/admin", ingress)
         self.assertIn("path: /callbacks/wecom/kf\n            pathType: Exact", ingress)

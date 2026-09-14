@@ -44,15 +44,15 @@ def main():
     permitted = {"DEEPSEEK_API_KEY", "DEEPSEEK_MODEL_NAME", "DEEPSEEK_BASE_URL", "DEEPSEEK_TIMEOUT", "DEEPSEEK_MAX_TOKENS", "DEEPSEEK_THINKING"}
     if not deepseek.get("DEEPSEEK_API_KEY") or set(deepseek) - permitted:
         raise SystemExit("Invalid DeepSeek runtime fields")
-    apply("educoder-wecom", "educoder-wecom-runtime", {
+    apply("wecom-kf", "educoder-wecom-runtime", {
         "WECOM_CORP_ID": read("educoder-wecom-corp-id"),
         "WECOM_CALLBACK_TOKEN": read("educoder-wecom-callback-token"),
         "WECOM_ENCODING_AES_KEY": read("educoder-wecom-aes-key"),
         "DATA_ENCRYPTION_KEY": data_key,
     })
-    apply("educoder-wecom", "wecom-kf-api", {"WECOM_API_SECRET": read("wecom-kf-api-secret")})
-    apply("educoder-wecom", "wecom-kf-deepseek", deepseek)
-    apply("educoder-wecom", "wecom-kf-admin", {"OIDC_CLIENT_SECRET": oidc, "ADMIN_SESSION_SECRET": session})
+    apply("wecom-kf", "wecom-kf-api", {"WECOM_API_SECRET": read("wecom-kf-api-secret")})
+    apply("wecom-kf", "wecom-kf-deepseek", deepseek)
+    apply("wecom-kf", "wecom-kf-admin", {"OIDC_CLIENT_SECRET": oidc, "ADMIN_SESSION_SECRET": session})
     apply("identity-system", "wecom-kf-oidc-secret", {"OIDC_CLIENT_SECRET": oidc})
     print("WeCom KF runtime secrets provisioned; secret values suppressed.")
 

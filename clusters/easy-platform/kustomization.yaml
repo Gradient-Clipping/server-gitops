@@ -20,3 +20,4 @@ resources:
   - apps/status-page
   - apps/lazycampus-agent
   - apps/educoder-wecom
+  - apps/wecom-kf

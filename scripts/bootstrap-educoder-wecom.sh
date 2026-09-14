@@ -15,13 +15,13 @@ if [[ ! -s "$key_file" ]]; then
   openssl rand -hex 32 | tr -d '\n' >"$key_file"
 fi
 chmod 0600 "$key_file"
-k3s kubectl apply -f "${ROOT}/clusters/easy-platform/apps/educoder-wecom/namespace.yaml" >/dev/null
-bash "${ROOT}/scripts/provision-mysql-database.sh" educoder_wecom educoder-wecom mysql-educoder-wecom educoder_wecom
+k3s kubectl apply -f "${ROOT}/clusters/easy-platform/apps/wecom-kf/namespace.yaml" >/dev/null
+bash "${ROOT}/scripts/provision-mysql-database.sh" educoder_wecom wecom-kf mysql-educoder-wecom educoder_wecom
 runtime_extra=()
 if [[ -s "${SECRET_DIR}/wecom-kf-data-key" ]]; then
   runtime_extra+=(--from-file=DATA_ENCRYPTION_KEY="${SECRET_DIR}/wecom-kf-data-key")
 fi
-k3s kubectl -n educoder-wecom create secret generic educoder-wecom-runtime \
+k3s kubectl -n wecom-kf create secret generic educoder-wecom-runtime \
   --from-file=WECOM_CORP_ID="${SECRET_DIR}/educoder-wecom-corp-id" \
   --from-file=WECOM_CALLBACK_TOKEN="${SECRET_DIR}/educoder-wecom-callback-token" \
   --from-file=WECOM_ENCODING_AES_KEY="${SECRET_DIR}/educoder-wecom-aes-key" \
@@ -36,7 +36,7 @@ password = (directory / 'tcr-password').read_text().strip()
 auth = base64.b64encode(f'{username}:{password}'.encode()).decode()
 pathlib.Path(sys.argv[1]).write_text(json.dumps({'auths': {'ccr.ccs.tencentyun.com': {'auth': auth}}}))
 PY
-k3s kubectl -n educoder-wecom create secret generic tcr-auth \
+k3s kubectl -n wecom-kf create secret generic tcr-auth \
   --type=kubernetes.io/dockerconfigjson --from-file=.dockerconfigjson="$docker_config" \
   --dry-run=client -o yaml | k3s kubectl apply -f - >/dev/null
 if [[ "${1:-}" == "--runtime-only" ]]; then
