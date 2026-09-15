@@ -101,6 +101,12 @@ spec:
           protocol: TCP
     - to:
         - ipBlock:
+            cidr: 222.178.202.35/32
+      ports:
+        - port: 441
+          protocol: TCP
+    - to:
+        - ipBlock:
             cidr: 0.0.0.0/0
       ports:
         - port: 80
