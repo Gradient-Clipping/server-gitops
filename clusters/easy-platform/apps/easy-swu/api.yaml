@@ -68,6 +68,9 @@ spec:
               value: https://easy-admin.lazycampus.com/api/v1/admin/oidc/callback
             - name: ADMIN_OIDC_POST_LOGOUT_REDIRECT_URI
               value: https://easy-admin.lazycampus.com/
+            # Kept for rollback compatibility with images before role-only authorization.
+            - name: ADMIN_OIDC_USERNAME
+              value: ystemsrx
             - name: ADMIN_OIDC_REQUIRED_ROLE
               value: platform-admin
             - name: MYSQL_CONNECTION_LIMIT
