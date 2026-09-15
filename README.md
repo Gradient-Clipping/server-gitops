@@ -276,8 +276,8 @@ generates new API and MinIO secrets, restores TCR pull access, prepares retained
 host directories, and creates the runtime Secrets without printing their
 values. The API performs its own ordered migrations before serving traffic.
 The management UI has no application-local login. It redirects to Keycloak and
-the API accepts only the `ystemsrx` OIDC identity with the `platform-admin`
-realm role.
+the API accepts any OIDC identity with the `platform-admin` realm role; usernames
+remain part of the audit identity but are not an authorization allowlist.
 
 The API connects to the shared `tailscale-proxy.tailscale-system.svc.cluster.local`
 userspace HTTP proxy on port 1055 and its health endpoint on port 9002. The gateway
