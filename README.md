@@ -233,8 +233,14 @@ It creates the `identity-system` namespace, registry/runtime Secrets, dedicated
 `keycloak` and `identity_bridge` databases, and updates the existing Smart Shop
 runtime Secret with its Identity Bridge and OIDC settings. Recovery material
 remains under `/etc/platform-secrets`; rerunning the command preserves existing
-values. Keycloak imports the realm on first start, while the hourly profile
-reconciler keeps the managed identity attributes aligned with Git.
+values. Before running it, store the initial password for the additional managed
+platform administrator in the root-only
+`/etc/platform-secrets/keycloak-additional-platform-admin-password` file. Keycloak
+imports the realm on first start, while the hourly profile reconciler keeps the
+managed identity attributes and the `platform-admin` role for `ystemsrx` and
+`gyx517120273` aligned with Git. The additional account receives the default
+Headlamp read-only group, not the Kubernetes `cluster-admin` binding, and must
+change its initial password and configure TOTP on first login.
 
 Useful checks:
 
