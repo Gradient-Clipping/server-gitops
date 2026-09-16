@@ -15,7 +15,7 @@ server {
 
     if ($educoder_origin_authenticated = 0) { return 403; }
 
-    location ~ ^/(callbacks/wecom/kf|healthz|readyz)$ {
+    location ~ ^/(callbacks/wecom/kf|callbacks/payments|healthz|readyz)$ {
         proxy_pass http://127.0.0.1:32080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

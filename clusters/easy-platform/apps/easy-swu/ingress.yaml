@@ -19,6 +19,13 @@ spec:
                 name: api
                 port:
                   name: http
+          - path: /integration/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  name: http
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

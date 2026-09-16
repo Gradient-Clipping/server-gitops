@@ -25,6 +25,13 @@ spec:
                 name: educoder-wecom
                 port:
                   name: http
+          - path: /callbacks/payments
+            pathType: Exact
+            backend:
+              service:
+                name: educoder-wecom
+                port:
+                  name: http
           - path: /healthz
             pathType: Exact
             backend:
