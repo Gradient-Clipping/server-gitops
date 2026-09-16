@@ -398,21 +398,21 @@ spec:
                         /opt/keycloak/bin/kcadm.sh set-password \
                           --config /tmp/kcadm.config \
                           --target-realm lazycampus \
-                          --username "${username}" \
+                          --userid "${user_id}" \
                           --new-password "${password}" \
                           --temporary
                       else
                         /opt/keycloak/bin/kcadm.sh set-password \
                           --config /tmp/kcadm.config \
                           --target-realm lazycampus \
-                          --username "${username}" \
+                          --userid "${user_id}" \
                           --new-password "${password}"
                       fi
                     fi
                     /opt/keycloak/bin/kcadm.sh add-roles \
                       --config /tmp/kcadm.config \
                       --target-realm lazycampus \
-                      --uusername "${username}" \
+                      --uid "${user_id}" \
                       --rolename platform-admin
                     printf -v "${output_name}" '%s' "${user_id}"
                   }
