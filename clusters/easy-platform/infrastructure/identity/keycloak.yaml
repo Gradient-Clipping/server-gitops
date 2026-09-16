@@ -336,54 +336,102 @@ spec:
                     --uusername ystemsrx \
                     --rolename platform-admin
 
-                  additional_admin_id="$(/opt/keycloak/bin/kcadm.sh get users \
-                    --config /tmp/kcadm.config \
-                    --target-realm lazycampus \
-                    --query "username=${ADDITIONAL_PLATFORM_ADMIN_USERNAME}" \
-                    --query exact=true \
-                    --fields id \
-                    --format csv \
-                    --noquotes | tail -n 1)"
-                  if [[ -z "${additional_admin_id}" ]]; then
-                    /opt/keycloak/bin/kcadm.sh create users \
+                  ensure_platform_admin() {
+                    local output_name="$1"
+                    local username="$2"
+                    local password="$3"
+                    local require_initial_setup="$4"
+                    local user_id
+                    local password_credential_id
+                    local created=false
+
+                    user_id="$(/opt/keycloak/bin/kcadm.sh get users \
                       --config /tmp/kcadm.config \
                       --target-realm lazycampus \
-                      --set "username=${ADDITIONAL_PLATFORM_ADMIN_USERNAME}" \
-                      --set enabled=true \
-                      --set emailVerified=true \
-                      --set firstName=Platform \
-                      --set lastName=Administrator \
-                      --set 'requiredActions=["UPDATE_PASSWORD","CONFIGURE_TOTP"]' >/dev/null
-                    additional_admin_id="$(/opt/keycloak/bin/kcadm.sh get users \
-                      --config /tmp/kcadm.config \
-                      --target-realm lazycampus \
-                      --query "username=${ADDITIONAL_PLATFORM_ADMIN_USERNAME}" \
+                      --query "username=${username}" \
                       --query exact=true \
                       --fields id \
                       --format csv \
                       --noquotes | tail -n 1)"
-                  fi
-                  test -n "${additional_admin_id}"
-                  additional_admin_credential_id="$(/opt/keycloak/bin/kcadm.sh get \
-                    "users/${additional_admin_id}/credentials" \
-                    --config /tmp/kcadm.config \
-                    --target-realm lazycampus \
-                    --fields id \
-                    --format csv \
-                    --noquotes | tail -n 1)"
-                  if [[ -z "${additional_admin_credential_id}" ]]; then
-                    /opt/keycloak/bin/kcadm.sh set-password \
+                    if [[ -z "${user_id}" ]]; then
+                      created=true
+                      /opt/keycloak/bin/kcadm.sh create users \
+                        --config /tmp/kcadm.config \
+                        --target-realm lazycampus \
+                        --set "username=${username}" \
+                        --set enabled=true \
+                        --set emailVerified=true \
+                        --set firstName=Platform \
+                        --set lastName=Administrator >/dev/null
+                      user_id="$(/opt/keycloak/bin/kcadm.sh get users \
+                        --config /tmp/kcadm.config \
+                        --target-realm lazycampus \
+                        --query "username=${username}" \
+                        --query exact=true \
+                        --fields id \
+                        --format csv \
+                        --noquotes | tail -n 1)"
+                    fi
+                    test -n "${user_id}"
+
+                    if [[ "${require_initial_setup}" == true && "${created}" == true ]]; then
+                      /opt/keycloak/bin/kcadm.sh update "users/${user_id}" \
+                        --config /tmp/kcadm.config \
+                        --target-realm lazycampus \
+                        --set 'requiredActions=["UPDATE_PASSWORD","CONFIGURE_TOTP"]' >/dev/null
+                    elif [[ "${require_initial_setup}" != true ]]; then
+                      /opt/keycloak/bin/kcadm.sh update "users/${user_id}" \
+                        --config /tmp/kcadm.config \
+                        --target-realm lazycampus \
+                        --set 'requiredActions=[]' >/dev/null
+                    fi
+
+                    password_credential_id="$(/opt/keycloak/bin/kcadm.sh get \
+                      "users/${user_id}/credentials" \
                       --config /tmp/kcadm.config \
                       --target-realm lazycampus \
-                      --username "${ADDITIONAL_PLATFORM_ADMIN_USERNAME}" \
-                      --new-password "${ADDITIONAL_PLATFORM_ADMIN_PASSWORD}" \
-                      --temporary
-                  fi
-                  /opt/keycloak/bin/kcadm.sh add-roles \
-                    --config /tmp/kcadm.config \
-                    --target-realm lazycampus \
-                    --uusername "${ADDITIONAL_PLATFORM_ADMIN_USERNAME}" \
-                    --rolename platform-admin
+                      --fields id,type \
+                      --format csv \
+                      --noquotes | sed -n 's/^\([^,]*\),password$/\1/p' | sed -n '1p')"
+                    if [[ -z "${password_credential_id}" ]]; then
+                      if [[ "${require_initial_setup}" == true ]]; then
+                        /opt/keycloak/bin/kcadm.sh set-password \
+                          --config /tmp/kcadm.config \
+                          --target-realm lazycampus \
+                          --username "${username}" \
+                          --new-password "${password}" \
+                          --temporary
+                      else
+                        /opt/keycloak/bin/kcadm.sh set-password \
+                          --config /tmp/kcadm.config \
+                          --target-realm lazycampus \
+                          --username "${username}" \
+                          --new-password "${password}"
+                      fi
+                    fi
+                    /opt/keycloak/bin/kcadm.sh add-roles \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --uusername "${username}" \
+                      --rolename platform-admin
+                    printf -v "${output_name}" '%s' "${user_id}"
+                  }
+
+                  ensure_platform_admin \
+                    additional_admin_id \
+                    "${ADDITIONAL_PLATFORM_ADMIN_USERNAME}" \
+                    "${ADDITIONAL_PLATFORM_ADMIN_PASSWORD}" \
+                    true
+                  ensure_platform_admin \
+                    zadmin_admin_id \
+                    "${ZADMIN_PLATFORM_ADMIN_USERNAME}" \
+                    "${ZADMIN_PLATFORM_ADMIN_PASSWORD}" \
+                    false
+                  ensure_platform_admin \
+                    zjx_admin_id \
+                    "${ZJX_PLATFORM_ADMIN_USERNAME}" \
+                    "${ZJX_PLATFORM_ADMIN_PASSWORD}" \
+                    false
 
                   groups_mapper_id="$(/opt/keycloak/bin/kcadm.sh get \
                     "clients/${headlamp_client_id}/protocol-mappers/models" \
@@ -449,11 +497,16 @@ spec:
                     --config /tmp/kcadm.config \
                     --target-realm lazycampus \
                     --no-merge >/dev/null
-                  /opt/keycloak/bin/kcadm.sh update \
-                    "users/${additional_admin_id}/groups/${viewer_group_id}" \
-                    --config /tmp/kcadm.config \
-                    --target-realm lazycampus \
-                    --no-merge >/dev/null
+                  for viewer_user_id in \
+                    "${additional_admin_id}" \
+                    "${zadmin_admin_id}" \
+                    "${zjx_admin_id}"; do
+                    /opt/keycloak/bin/kcadm.sh update \
+                      "users/${viewer_user_id}/groups/${viewer_group_id}" \
+                      --config /tmp/kcadm.config \
+                      --target-realm lazycampus \
+                      --no-merge >/dev/null
+                  done
 
                   /opt/keycloak/bin/kcadm.sh update identity-provider/instances/campus \
                     --config /tmp/kcadm.config \
@@ -463,6 +516,10 @@ spec:
               env:
                 - name: ADDITIONAL_PLATFORM_ADMIN_USERNAME
                   value: gyx517120273
+                - name: ZADMIN_PLATFORM_ADMIN_USERNAME
+                  value: Zadmin
+                - name: ZJX_PLATFORM_ADMIN_USERNAME
+                  value: zjx741236
               envFrom:
                 - secretRef:
                     name: keycloak-runtime

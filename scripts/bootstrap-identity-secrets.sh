@@ -40,6 +40,8 @@ require_file "${SECRET_DIR}/tcr-password"
 require_file "${SECRET_DIR}/smart-shop.env"
 require_file "${SECRET_DIR}/keycloak-ystemsrx-password"
 require_file "${SECRET_DIR}/keycloak-additional-platform-admin-password"
+require_file "${SECRET_DIR}/keycloak-zadmin-platform-admin-password"
+require_file "${SECRET_DIR}/keycloak-zjx-platform-admin-password"
 
 write_fixed_file "${SECRET_DIR}/keycloak-bootstrap-admin-username" "platform-bootstrap-admin"
 write_fixed_file "${SECRET_DIR}/keycloak-platform-admin-username" "platform-admin"
@@ -167,6 +169,8 @@ keycloak_values = {
     "EASY_SWU_ADMIN_OIDC_CLIENT_SECRET": read("easy-swu-admin-oidc-client-secret"),
     "YSTEMSRX_PASSWORD": read("keycloak-ystemsrx-password"),
     "ADDITIONAL_PLATFORM_ADMIN_PASSWORD": read("keycloak-additional-platform-admin-password"),
+    "ZADMIN_PLATFORM_ADMIN_PASSWORD": read("keycloak-zadmin-platform-admin-password"),
+    "ZJX_PLATFORM_ADMIN_PASSWORD": read("keycloak-zjx-platform-admin-password"),
     "PLATFORM_ADMIN_USERNAME": read("keycloak-platform-admin-username"),
     "PLATFORM_ADMIN_PASSWORD": read("keycloak-platform-admin-password"),
 }

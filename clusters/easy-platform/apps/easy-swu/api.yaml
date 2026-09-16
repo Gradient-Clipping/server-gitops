@@ -73,6 +73,8 @@ spec:
               value: ystemsrx
             - name: ADMIN_OIDC_REQUIRED_ROLE
               value: platform-admin
+            - name: ADMIN_OIDC_ALLOWED_USERNAMES
+              value: ystemsrx,gyx517120273,zjx741236
             - name: MYSQL_CONNECTION_LIMIT
               value: "10"
             - name: REDIS_URL
