@@ -188,6 +188,72 @@ FROM `agent_source_database`.`publication_receipts`;
 
 GRANT SELECT ON `agent_source_database`.`agent_publication_receipts` TO 'agent_snapshot'@'%';
 
+GRANT SELECT (`attempt_key`, `calculation_score`, `course_key`, `course_name`, `course_type`, `display_name`, `grade_json`, `reviewable`, `teacher_name`, `user_id`) ON `agent_source_database`.`course_assistant_grade_index` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_assistant_grades` AS
+SELECT
+  `user_id` AS `user_id`,
+  `attempt_key` AS `attempt_key`,
+  `course_key` AS `course_key`,
+  `course_type` AS `course_type`,
+  `display_name` AS `display_name`,
+  `course_name` AS `course_name`,
+  `teacher_name` AS `teacher_name`,
+  `calculation_score` AS `calculation_score`,
+  `reviewable` AS `reviewable`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.courseNature')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.courseNature')) ELSE NULL END AS `course_nature`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.sportName')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.sportName')) ELSE NULL END AS `sport_name`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.academicYear')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.academicYear')) ELSE NULL END AS `academic_year`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.academicYearStart')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.academicYearStart')) ELSE NULL END AS `academic_year_start`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.term')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.term')) ELSE NULL END AS `term`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.cohortYear')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.cohortYear')) ELSE NULL END AS `cohort_year`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.finalScore')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.finalScore')) ELSE NULL END AS `final_score`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.credits')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.credits')) ELSE NULL END AS `credits`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.sourceFetchedAt')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.sourceFetchedAt')) ELSE NULL END AS `source_fetched_at`
+FROM `agent_source_database`.`course_assistant_grade_index`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_assistant_grades` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`academic_year`, `academic_year_start`, `active`, `assistant_course_key`, `calculation_score`, `content`, `course_key`, `course_name`, `course_type`, `created_at`, `deactivated_at`, `display_name`, `grade_attempt_key`, `id`, `keywords_json`, `rating`, `teacher_name`, `teacher_names_json`, `term`, `updated_at`, `user_id`) ON `agent_source_database`.`course_assistant_reviews` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_assistant_reviews` AS
+SELECT
+  `id` AS `id`,
+  `user_id` AS `user_id`,
+  `course_key` AS `course_key`,
+  `assistant_course_key` AS `assistant_course_key`,
+  `grade_attempt_key` AS `grade_attempt_key`,
+  `course_type` AS `course_type`,
+  `course_name` AS `course_name`,
+  `display_name` AS `display_name`,
+  `academic_year` AS `academic_year`,
+  `academic_year_start` AS `academic_year_start`,
+  `term` AS `term`,
+  `calculation_score` AS `calculation_score`,
+  `teacher_name` AS `teacher_name`,
+  `rating` AS `rating`,
+  `content` AS `content`,
+  `active` AS `active`,
+  `deactivated_at` AS `deactivated_at`,
+  `created_at` AS `created_at`,
+  `updated_at` AS `updated_at`,
+  `teacher_names_json` AS `teacher_names`,
+  `keywords_json` AS `keywords`
+FROM `agent_source_database`.`course_assistant_reviews`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_assistant_reviews` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`created_at`, `review_id`, `user_id`) ON `agent_source_database`.`course_assistant_review_likes` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_assistant_review_likes` AS
+SELECT
+  `review_id` AS `review_id`,
+  `user_id` AS `user_id`,
+  `created_at` AS `created_at`
+FROM `agent_source_database`.`course_assistant_review_likes`;
+
+GRANT SELECT ON `agent_source_database`.`agent_course_assistant_review_likes` TO 'agent_snapshot'@'%';
+
 GRANT SELECT (`amount_cents`, `created_at`, `credited_at`, `id`, `paid_amount_cents`, `paid_at`, `payment_channel`, `payment_env`, `plan_code`, `plan_name`, `provider`, `quota_amount`, `quota_unit`, `refunded_cents`, `status`, `updated_at`, `user_id`) ON `agent_source_database`.`course_grab_orders` TO 'agent_view_owner'@'localhost';
 
 CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_course_grab_orders` AS
