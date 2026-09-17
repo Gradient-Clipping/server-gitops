@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - name: Check out desired state
@@ -59,7 +59,7 @@ jobs:
     name: Promote validated production revision
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     permissions:
       contents: write
