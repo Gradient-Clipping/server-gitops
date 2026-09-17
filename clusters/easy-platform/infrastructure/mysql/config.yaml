@@ -14,7 +14,7 @@ data:
     max-connections=100
     innodb-buffer-pool-size=256M
     innodb-redo-log-capacity=256M
-    # Bound auxiliary memory for the shared instance's 1 GiB container limit.
+    # Bound auxiliary memory within the shared instance's container limit.
     innodb-log-buffer-size=16M
     key-buffer-size=1M
     table-open-cache=1024
