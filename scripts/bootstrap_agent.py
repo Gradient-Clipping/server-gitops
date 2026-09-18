@@ -203,6 +203,7 @@ def provision_snapshot_views():
             snapshot_config[f"{prefix}_DB_{field}"] = value
     apply_secret("agent-snapshot-mysql", snapshot_config)
     provision_snapshot_media()
+    provision_snapshot_sessions()
 
 
 def provision_snapshot_media():
@@ -243,6 +244,34 @@ def provision_snapshot_media():
         "EASY_CAMPUS_MEDIA_SECRET_KEY": password,
         "EASY_CAMPUS_MEDIA_BUCKET": "easy-swu-media",
         "EASY_CAMPUS_MEDIA_ENDPOINT": "easy-swu-minio.easy-swu.svc.cluster.local:9000",
+    })
+
+
+def provision_snapshot_sessions():
+    def credential(filename):
+        path = Path("/etc/platform-secrets") / filename
+        if not path.exists():
+            path.write_text(secrets.token_urlsafe(36))
+            path.chmod(0o600)
+        value = path.read_text().strip()
+        if not re.fullmatch(r"[a-zA-Z0-9_-]{32,}", value):
+            raise ValueError("Unexpected Redis credential format")
+        return value
+
+    api_password = credential("easy-swu-redis-api-password")
+    snapshot_password = credential("agent-snapshot-session-password")
+    acl = ("user default off\n"
+           f"user easy_swu_api on >{api_password} ~* &* +@all\n"
+           f"user agent_snapshot_session on >{snapshot_password} ~auth:session:* +get +pttl +scan +ping\n")
+    apply_secret("easy-swu-redis-acl", {"users.acl": acl}, namespace="easy-swu")
+    apply_secret("easy-swu-redis-client", {
+        "REDIS_URL": f"redis://easy_swu_api:{api_password}@easy-swu-redis:6379/0",
+        "REDISCLI_AUTH": api_password,
+    }, namespace="easy-swu")
+    apply_secret("agent-snapshot-sessions", {
+        "EASY_CAMPUS_SESSION_REDIS_HOST": "easy-swu-redis.easy-swu.svc.cluster.local",
+        "EASY_CAMPUS_SESSION_REDIS_PORT": "6379",
+        "EASY_CAMPUS_SESSION_REDIS_PASSWORD": snapshot_password,
     })
 
 
