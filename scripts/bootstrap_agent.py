@@ -210,8 +210,14 @@ def provision_snapshot_media():
     if not policy_file.exists():
         policy_file = ROOT / "deploy/host/agent-media-policy.json"
     policy = policy_file.read_text(encoding="utf-8")
-    if json.loads(policy)["Statement"][1]["Resource"] != [
-        "arn:aws:s3:::easy-swu-media/users/*/timetable-background.jpg"
+    if json.loads(policy)["Statement"] != [
+        {"Effect": "Allow", "Action": ["s3:GetBucketLocation"],
+         "Resource": ["arn:aws:s3:::easy-swu-media"]},
+        {"Effect": "Allow", "Action": ["s3:ListBucket"],
+         "Resource": ["arn:aws:s3:::easy-swu-media"],
+         "Condition": {"StringLike": {"s3:prefix": ["users/*"]}}},
+        {"Effect": "Allow", "Action": ["s3:GetObject"],
+         "Resource": ["arn:aws:s3:::easy-swu-media/users/*/timetable-background.jpg"]},
     ]:
         raise ValueError("Unexpected timetable media policy")
     credential_file = Path("/etc/platform-secrets/agent-snapshot-media-password")

@@ -3,6 +3,11 @@
   "Statement": [
     {
       "Effect": "Allow",
+      "Action": ["s3:GetBucketLocation"],
+      "Resource": ["arn:aws:s3:::easy-swu-media"]
+    },
+    {
+      "Effect": "Allow",
       "Action": ["s3:ListBucket"],
       "Resource": ["arn:aws:s3:::easy-swu-media"],
       "Condition": {"StringLike": {"s3:prefix": ["users/*"]}}
