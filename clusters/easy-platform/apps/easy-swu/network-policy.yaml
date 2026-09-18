@@ -162,6 +162,12 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: easy-swu-api
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: lazycampus-agent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-snapshots
       ports:
         - port: 6379
           protocol: TCP

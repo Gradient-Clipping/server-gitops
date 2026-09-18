@@ -40,17 +40,28 @@ spec:
             - everysec
             - --save
             - "900 1 300 10 60 10000"
+            - --aclfile
+            - /etc/redis/users.acl
           ports:
             - name: redis
               containerPort: 6379
               protocol: TCP
+          env:
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef: {name: easy-swu-redis-client, key: REDISCLI_AUTH}
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: agent-session-acl
+              mountPath: /etc/redis
+              readOnly: true
           readinessProbe:
             exec:
               command:
                 - redis-cli
+                - --user
+                - easy_swu_api
                 - ping
             initialDelaySeconds: 2
             periodSeconds: 5
@@ -58,6 +69,8 @@ spec:
             exec:
               command:
                 - redis-cli
+                - --user
+                - easy_swu_api
                 - ping
             initialDelaySeconds: 10
             periodSeconds: 15
@@ -78,6 +91,9 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: easy-swu-redis
+        - name: agent-session-acl
+          secret:
+            secretName: easy-swu-redis-acl
 ---
 apiVersion: v1
 kind: Service

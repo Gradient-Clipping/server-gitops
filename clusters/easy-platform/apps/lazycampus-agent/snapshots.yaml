@@ -36,6 +36,7 @@ spec:
               envFrom:
                 - {secretRef: {name: agent-snapshot-mysql}}
                 - {secretRef: {name: agent-snapshot-minio}}
+                - {secretRef: {name: agent-snapshot-sessions}}
               resources:
                 requests: {cpu: 50m, memory: 64Mi}
                 limits: {cpu: 750m, memory: 512Mi}

@@ -78,7 +78,8 @@ spec:
             - name: MYSQL_CONNECTION_LIMIT
               value: "10"
             - name: REDIS_URL
-              value: redis://easy-swu-redis:6379/0
+              valueFrom:
+                secretKeyRef: {name: easy-swu-redis-client, key: REDIS_URL}
             - name: CACHE_TTL_SECONDS
               value: "300"
             - name: MINIO_ENDPOINT
