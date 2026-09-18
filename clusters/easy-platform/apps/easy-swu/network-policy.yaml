@@ -185,6 +185,12 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: easy-swu-minio-backup
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: lazycampus-agent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: agent-snapshots
       ports:
         - port: 9000
           protocol: TCP

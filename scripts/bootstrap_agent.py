@@ -202,6 +202,42 @@ def provision_snapshot_views():
                              "USER": "agent_snapshot", "PASSWORD": account_password}.items():
             snapshot_config[f"{prefix}_DB_{field}"] = value
     apply_secret("agent-snapshot-mysql", snapshot_config)
+    provision_snapshot_media()
+
+
+def provision_snapshot_media():
+    policy_file = ROOT / "config/agent-media-policy.json"
+    if not policy_file.exists():
+        policy_file = ROOT / "deploy/host/agent-media-policy.json"
+    policy = policy_file.read_text(encoding="utf-8")
+    if json.loads(policy)["Statement"][1]["Resource"] != [
+        "arn:aws:s3:::easy-swu-media/users/*/timetable-background.jpg"
+    ]:
+        raise ValueError("Unexpected timetable media policy")
+    credential_file = Path("/etc/platform-secrets/agent-snapshot-media-password")
+    if not credential_file.exists():
+        credential_file.write_text(secrets.token_urlsafe(36))
+        credential_file.chmod(0o600)
+    password = credential_file.read_text().strip()
+    if not re.fullmatch(r"[a-zA-Z0-9_-]{32,}", password):
+        raise ValueError("Unexpected timetable media password format")
+    script = (
+        "set -eu; read -r media_password; "
+        "cat > /tmp/agent-timetable-policy.json; "
+        "mc alias set agent-bootstrap http://127.0.0.1:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\" >/dev/null; "
+        "mc admin policy create agent-bootstrap agent-timetable-backgrounds-read /tmp/agent-timetable-policy.json >/dev/null; "
+        "mc admin user add agent-bootstrap agent_snapshot_media \"$media_password\" >/dev/null; "
+        "mc admin policy attach agent-bootstrap agent-timetable-backgrounds-read --user agent_snapshot_media >/dev/null; "
+        "rm -f /tmp/agent-timetable-policy.json"
+    )
+    kubectl("exec", "-i", "-n", "easy-swu", "deploy/easy-swu-minio", "--", "sh", "-c", script,
+            content=password + "\n" + policy)
+    apply_secret("agent-snapshot-minio", {
+        "EASY_CAMPUS_MEDIA_ACCESS_KEY": "agent_snapshot_media",
+        "EASY_CAMPUS_MEDIA_SECRET_KEY": password,
+        "EASY_CAMPUS_MEDIA_BUCKET": "easy-swu-media",
+        "EASY_CAMPUS_MEDIA_ENDPOINT": "easy-swu-minio.easy-swu.svc.cluster.local:9000",
+    })
 
 
 def configure_nginx():

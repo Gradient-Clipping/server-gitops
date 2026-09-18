@@ -105,6 +105,11 @@ spec:
   egress:
     - to:
         - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: easy-swu}
+          podSelector: {matchLabels: {app.kubernetes.io/name: easy-swu-minio}}
+      ports: [{port: 9000, protocol: TCP}]
+    - to:
+        - namespaceSelector:
             matchLabels: {kubernetes.io/metadata.name: mysql-system}
           podSelector: {matchLabels: {app.kubernetes.io/name: platform-mysql}}
       ports: [{port: 3306, protocol: TCP}]

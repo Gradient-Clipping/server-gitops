@@ -13,7 +13,7 @@ spec:
   jobTemplate:
     spec:
       backoffLimit: 1
-      activeDeadlineSeconds: 240
+      activeDeadlineSeconds: 600
       ttlSecondsAfterFinished: 86400
       template:
         metadata:
@@ -33,10 +33,12 @@ spec:
             - name: project
               image: ccr.ccs.tencentyun.com/lazycampus/agent-backend:1.0.35128911852 # {"$imagepolicy": "flux-system:agent-backend"}
               command: [python, -m, data_access, refresh]
-              envFrom: [{secretRef: {name: agent-snapshot-mysql}}]
+              envFrom:
+                - {secretRef: {name: agent-snapshot-mysql}}
+                - {secretRef: {name: agent-snapshot-minio}}
               resources:
                 requests: {cpu: 50m, memory: 64Mi}
-                limits: {cpu: 500m, memory: 256Mi}
+                limits: {cpu: 750m, memory: 512Mi}
               securityContext:
                 allowPrivilegeEscalation: false
                 capabilities: {drop: [ALL]}

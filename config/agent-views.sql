@@ -27,7 +27,11 @@ SELECT
   CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.studentType')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.studentType')) ELSE NULL END AS `student_type`,
   CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.studentStatus')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.studentStatus')) ELSE NULL END AS `student_status`,
   CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.enrollmentDate')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.enrollmentDate')) ELSE NULL END AS `enrollment_date`,
-  CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.programLength')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.programLength')) ELSE NULL END AS `program_length`
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.programLength')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.programLength')) ELSE NULL END AS `program_length`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.nationality')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.nationality')) ELSE NULL END AS `nationality`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.studentOrigin')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.studentOrigin')) ELSE NULL END AS `student_origin`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.phone')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.phone')) ELSE NULL END AS `phone`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`profile_json`, '$.registeredPhone')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`profile_json`, '$.registeredPhone')) ELSE NULL END AS `registered_phone`
 FROM `agent_source_database`.`users`;
 
 GRANT SELECT ON `agent_source_database`.`agent_users` TO 'agent_snapshot'@'%';
@@ -209,7 +213,8 @@ SELECT
   CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.cohortYear')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.cohortYear')) ELSE NULL END AS `cohort_year`,
   CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.finalScore')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.finalScore')) ELSE NULL END AS `final_score`,
   CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.credits')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.credits')) ELSE NULL END AS `credits`,
-  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.sourceFetchedAt')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.sourceFetchedAt')) ELSE NULL END AS `source_fetched_at`
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.sourceFetchedAt')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.sourceFetchedAt')) ELSE NULL END AS `source_fetched_at`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`grade_json`, '$.courseOwnership')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`grade_json`, '$.courseOwnership')) ELSE NULL END AS `course_ownership`
 FROM `agent_source_database`.`course_assistant_grade_index`;
 
 GRANT SELECT ON `agent_source_database`.`agent_course_assistant_grades` TO 'agent_snapshot'@'%';
@@ -373,3 +378,154 @@ SELECT
 FROM `agent_source_database`.`course_grab_quota_change_users`;
 
 GRANT SELECT ON `agent_source_database`.`agent_course_grab_quota_change_users` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`color`, `enabled`, `enhanced`, `selected`, `shape`, `skipped`, `updated_at`, `user_id`) ON `agent_source_database`.`user_companion_preferences` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_user_companion_preferences` AS
+SELECT
+  `user_id` AS `user_id`,
+  `selected` AS `selected`,
+  `skipped` AS `skipped`,
+  `enabled` AS `enabled`,
+  `enhanced` AS `enhanced`,
+  `shape` AS `shape`,
+  `color` AS `color`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`user_companion_preferences`;
+
+GRANT SELECT ON `agent_source_database`.`agent_user_companion_preferences` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`expires_at`, `last_manual_day`, `user_id`) ON `agent_source_database`.`timetable_companion_codes` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_timetable_companion_codes` AS
+SELECT
+  `user_id` AS `user_id`,
+  `expires_at` AS `expires_at`,
+  `last_manual_day` AS `last_manual_day`
+FROM `agent_source_database`.`timetable_companion_codes`;
+
+GRANT SELECT ON `agent_source_database`.`agent_timetable_companion_codes` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`created_at`, `id`, `recipient_id`, `sender_id`) ON `agent_source_database`.`timetable_companion_requests` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_timetable_companion_requests` AS
+SELECT
+  `id` AS `id`,
+  `sender_id` AS `sender_id`,
+  `recipient_id` AS `recipient_id`,
+  `created_at` AS `created_at`
+FROM `agent_source_database`.`timetable_companion_requests`;
+
+GRANT SELECT ON `agent_source_database`.`agent_timetable_companion_requests` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`created_at`, `user_high`, `user_low`) ON `agent_source_database`.`timetable_companions` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_timetable_companions` AS
+SELECT
+  `user_low` AS `user_low`,
+  `user_high` AS `user_high`,
+  `created_at` AS `created_at`
+FROM `agent_source_database`.`timetable_companions`;
+
+GRANT SELECT ON `agent_source_database`.`agent_timetable_companions` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`source_key`, `user_id`, `viewed_at`) ON `agent_source_database`.`school_notice_views` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_school_notice_views` AS
+SELECT
+  `source_key` AS `source_key`,
+  `user_id` AS `user_id`,
+  `viewed_at` AS `viewed_at`
+FROM `agent_source_database`.`school_notice_views`;
+
+GRANT SELECT ON `agent_source_database`.`agent_school_notice_views` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`cache_key`, `fetched_at`, `payload_json`, `updated_at`) ON `agent_source_database`.`school_notice_cache` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_school_notice_cache` AS
+SELECT
+  `cache_key` AS `cache_key`,
+  `payload_json` AS `payload_json`,
+  `fetched_at` AS `fetched_at`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`school_notice_cache`;
+
+GRANT SELECT ON `agent_source_database`.`agent_school_notice_cache` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`content_html`, `fetched_at`, `last_accessed_at`, `published_at`, `publisher`, `schema_version`, `source_id`, `source_url`, `title`, `updated_at`) ON `agent_source_database`.`school_notice_content_cache` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_school_notice_content_cache` AS
+SELECT
+  `source_id` AS `source_id`,
+  `source_url` AS `source_url`,
+  `schema_version` AS `schema_version`,
+  `title` AS `title`,
+  `publisher` AS `publisher`,
+  `published_at` AS `published_at`,
+  `content_html` AS `content_html`,
+  `fetched_at` AS `fetched_at`,
+  `last_accessed_at` AS `last_accessed_at`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`school_notice_content_cache`;
+
+GRANT SELECT ON `agent_source_database`.`agent_school_notice_content_cache` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`deleted_at`, `fetched_at`, `payload_bytes`, `payload_json`, `resource_key`, `revision`, `schema_version`, `updated_at`, `user_id`) ON `agent_source_database`.`user_data_snapshots` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_schedule_snapshots` AS
+SELECT
+  `user_id` AS `user_id`,
+  `resource_key` AS `resource_key`,
+  `schema_version` AS `schema_version`,
+  `payload_json` AS `payload_json`,
+  `fetched_at` AS `fetched_at`,
+  `revision` AS `revision`,
+  `deleted_at` AS `deleted_at`,
+  `payload_bytes` AS `payload_bytes`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`user_data_snapshots` WHERE `resource_key` = 'schedule';
+
+GRANT SELECT ON `agent_source_database`.`agent_schedule_snapshots` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`deleted_at`, `fetched_at`, `payload_bytes`, `payload_json`, `resource_key`, `revision`, `schema_version`, `updated_at`, `user_id`) ON `agent_source_database`.`user_data_snapshots` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_timetable_snapshots` AS
+SELECT
+  `user_id` AS `user_id`,
+  `resource_key` AS `resource_key`,
+  `schema_version` AS `schema_version`,
+  `payload_json` AS `payload_json`,
+  `fetched_at` AS `fetched_at`,
+  `revision` AS `revision`,
+  `deleted_at` AS `deleted_at`,
+  `payload_bytes` AS `payload_bytes`,
+  `updated_at` AS `updated_at`
+FROM `agent_source_database`.`user_data_snapshots` WHERE `resource_key` LIKE 'timetable:%';
+
+GRANT SELECT ON `agent_source_database`.`agent_timetable_snapshots` TO 'agent_snapshot'@'%';
+
+GRANT SELECT (`buyer_id`, `created_at`, `document`, `external_order_no`, `id`, `platform_code`) ON `agent_source_database`.`service_orders` TO 'agent_view_owner'@'localhost';
+
+CREATE OR REPLACE ALGORITHM=UNDEFINED DEFINER='agent_view_owner'@'localhost' SQL SECURITY DEFINER VIEW `agent_service_orders` AS
+SELECT
+  `id` AS `id`,
+  `platform_code` AS `platform_code`,
+  `external_order_no` AS `external_order_no`,
+  `buyer_id` AS `buyer_id`,
+  `created_at` AS `created_at`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.platform_name')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.platform_name')) ELSE NULL END AS `platform_name`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.payment_status')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.payment_status')) ELSE NULL END AS `payment_status`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.paid_at')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.paid_at')) ELSE NULL END AS `paid_at`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.payment_channel')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.payment_channel')) ELSE NULL END AS `payment_channel`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.amount_fen')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.amount_fen')) ELSE NULL END AS `amount_fen`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.service_units')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.service_units')) ELSE NULL END AS `service_units`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.billable_units')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.billable_units')) ELSE NULL END AS `billable_units`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.version')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.version')) ELSE NULL END AS `version`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.customer_ref')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.customer_ref')) ELSE NULL END AS `customer_ref`,
+  CASE WHEN JSON_TYPE(JSON_EXTRACT(`document`, '$.selection_version')) IN ('STRING','INTEGER','DOUBLE','BOOLEAN') THEN JSON_UNQUOTE(JSON_EXTRACT(`document`, '$.selection_version')) ELSE NULL END AS `selection_version`,
+  JSON_EXTRACT(`document`, '$.service_items') AS `service_items_json`,
+  JSON_EXTRACT(`document`, '$.refunds') AS `refunds_json`,
+  JSON_EXTRACT(`document`, '$.fulfillment') AS `fulfillment_json`
+FROM `agent_source_database`.`service_orders`;
+
+GRANT SELECT ON `agent_source_database`.`agent_service_orders` TO 'agent_snapshot'@'%';
