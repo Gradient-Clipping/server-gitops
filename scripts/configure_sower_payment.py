@@ -36,6 +36,9 @@ def main():
         name="朔日平台",
         enabled=True,
         secret=integration_secret,
+        order_summary_name="朔日",
+        order_summary_unit="个任务",
+        order_summary_quantity="items",
         webhook_url="https://kf.lazycampus.com/callbacks/payments",
         skus={
             "service_units": {
