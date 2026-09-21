@@ -40,6 +40,7 @@ class CallbackDeploymentTests(unittest.TestCase):
         base = ROOT / "clusters/easy-platform/apps/wecom-kf"
         ingress = (base / "ingress.yaml").read_text()
         self.assertIn("/admin", ingress)
+        self.assertIn("path: /\n            pathType: Prefix", ingress)
         self.assertIn("path: /callbacks/wecom/kf\n            pathType: Exact", ingress)
         self.assertIn("path: /callbacks/payments\n            pathType: Exact", ingress)
         easy_ingress = (ROOT / "clusters/easy-platform/apps/easy-swu/ingress.yaml").read_text()
@@ -52,3 +53,5 @@ class CallbackDeploymentTests(unittest.TestCase):
         self.assertIn("return 403;", nginx)
         self.assertIn("return 404;", nginx)
         self.assertIn("callbacks/payments", nginx)
+        self.assertIn("location = /", nginx)
+        self.assertIn("api/admin", nginx)
