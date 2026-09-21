@@ -9,6 +9,10 @@ data:
   EDUCODER_EXECUTION_ENABLED: "true"
   QUESTION_BANK_PATH: /data/question_bank.sqlite
   EDUCODER_CACHE_DIR: /tmp/educoder
+  SOWER_BASE_URL: http://172.18.5.87/srpt
+  SOWER_RUNTIME_DIR: /work/sower
+  TAILSCALE_PROXY_URL: http://tailscale-proxy.tailscale-system.svc.cluster.local:1055
+  TAILSCALE_HEALTH_URL: http://tailscale-proxy.tailscale-system.svc.cluster.local:9002/healthz
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -21,6 +25,18 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wecom-kf-sower-runtime
+  namespace: wecom-kf
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -144,8 +160,8 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
           resources:
-            requests: {cpu: 50m, memory: 128Mi}
-            limits: {cpu: "1", memory: 768Mi}
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "2", memory: 1536Mi}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -153,9 +169,12 @@ spec:
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
             - {name: bank, mountPath: /data}
+            - {name: sower-runtime, mountPath: /work/sower}
       volumes:
         - name: bank
           persistentVolumeClaim: {claimName: wecom-kf-bank}
         - name: tmp
           emptyDir: {sizeLimit: 128Mi}
+        - name: sower-runtime
+          persistentVolumeClaim: {claimName: wecom-kf-sower-runtime}
       terminationGracePeriodSeconds: 300
