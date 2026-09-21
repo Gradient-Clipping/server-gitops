@@ -54,6 +54,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: wecom-kf-workers
+        platform.lazycampus.com/campus-network-client: "true"
     spec:
       automountServiceAccountToken: false
       imagePullSecrets:
