@@ -68,7 +68,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: bank-seed
-          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.39 # {"$imagepolicy": "flux-system:educoder-wecom"}
+          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.40 # {"$imagepolicy": "flux-system:educoder-wecom"}
           command: [python, -m, wecom_kf.seed]
           envFrom:
             - configMapRef:
@@ -84,7 +84,7 @@ spec:
             - {name: bank, mountPath: /data}
       containers:
         - name: gateway
-          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.39 # {"$imagepolicy": "flux-system:educoder-wecom"}
+          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.40 # {"$imagepolicy": "flux-system:educoder-wecom"}
           command: [python, -m, wecom_kf.worker, gateway]
           envFrom:
             - configMapRef: {name: wecom-kf-config}
@@ -113,7 +113,7 @@ spec:
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
         - name: actions
-          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.39 # {"$imagepolicy": "flux-system:educoder-wecom"}
+          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.40 # {"$imagepolicy": "flux-system:educoder-wecom"}
           command: [python, -m, wecom_kf.worker, actions]
           envFrom:
             - configMapRef: {name: wecom-kf-config}
@@ -141,7 +141,7 @@ spec:
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
         - name: executor
-          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.39 # {"$imagepolicy": "flux-system:educoder-wecom"}
+          image: ccr.ccs.tencentyun.com/lazycampus/educoder-wecom:1.0.40 # {"$imagepolicy": "flux-system:educoder-wecom"}
           command: [python, -m, wecom_kf.worker, executor]
           envFrom:
             - configMapRef: {name: wecom-kf-config}
