@@ -21,13 +21,6 @@ data:
             "lazycampus.com": "www.lazycampus.com"
           },
           "ttl": 1
-        },
-        {
-          "domain": "bbbto.com",
-          "mode": "direct",
-          "origin": "1.14.95.189",
-          "cloudflareZoneId": "26c7ec5a9e2743e2e8368378142aba0c",
-          "ttl": 1
         }
       ]
     }

@@ -34,16 +34,6 @@
       ]
     },
     {
-      "name": "github-bbbto",
-      "repository": "Gradient-Clipping/bbbto-mnp",
-      "branch": "main",
-      "event": "workflow_run",
-      "workflow": ".github/workflows/publish.yml",
-      "resources": [
-        "bbbto-mnp"
-      ]
-    },
-    {
       "name": "github-smart-shop",
       "repository": "ystemsrx/smart-shop",
       "branch": "master",

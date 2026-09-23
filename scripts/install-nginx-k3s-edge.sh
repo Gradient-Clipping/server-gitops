@@ -4,7 +4,7 @@ set -euo pipefail
 source_dir="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../host/nginx" && pwd)}"
 target_dir="/etc/nginx/sites-available"
 backup_dir="/var/backups/nginx-k3s-cutover-$(date +%Y%m%dT%H%M%S%z)"
-configs=(lazycampus bbbto.com shop-lazycampus auth-lazycampus headlamp-lazycampus easy-swu)
+configs=(lazycampus shop-lazycampus auth-lazycampus headlamp-lazycampus easy-swu)
 new_configs=()
 
 for name in "${configs[@]}"; do
@@ -24,7 +24,6 @@ for name in "${configs[@]}"; do
   install -m 644 "${source_dir}/${name}" "${target_dir}/${name}"
   ln -sfn "${target_dir}/${name}" "/etc/nginx/sites-enabled/${name}"
 done
-
 if ! nginx -t; then
   echo "Nginx validation failed; restoring ${backup_dir}." >&2
   for name in "${configs[@]}"; do

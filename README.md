@@ -15,7 +15,7 @@ This private repository is the desired state for the single-node `easy-platform-
 6. A signed GitHub `production` push webhook triggers Flux to fetch the validated
    revision and apply it to K3s. See [production promotion](config/PRODUCTION_PROMOTION.md).
 
-Ten independent ImageRepository/ImagePolicy pairs feed one ImageUpdateAutomation
+Thirteen independent ImageRepository/ImagePolicy pairs feed one ImageUpdateAutomation
 (`flux-system/platform-images`). It selects policies labelled
 `platform.lazycampus.com/image-automation: platform-images` and updates marked
 images below `clusters/easy-platform`. This replaces seven writers to the same
@@ -90,8 +90,9 @@ administration interface; publishing payment support does not change that settin
   The one-time EdgeOne cache operation is recorded outside active reconciliation
   in `operations/homepage-cache-refresh-20260908/`; its request was denied by
   the existing restricted CAM policy and requires separate cache verification.
-- `apps/bbbto-mnp`: `bbbto.com` and `www.bbbto.com`, including a retained
-  SQLite persistent volume.
+- `apps/bbbto-mnp`: retained internal workload and SQLite persistent volume.
+  The former public domain and its publishing pipeline were retired after
+  domain ownership ended; this application has no Ingress or image automation.
 - `apps/smart-shop`: `shop.lazycampus.com` and
   `shop-api.lazycampus.com`, including retained SQLite, uploads, public assets,
   exports, logs, and Redis volumes.
@@ -140,9 +141,8 @@ administration interface; publishing payment support does not change that settin
 Domains are declared in each application's `ingress.yaml`. An Ingress with
 `platform.lazycampus.com/domain-automation: enabled` is reconciled every minute.
 Hosts under `lazycampus.com` receive an EdgeOne acceleration domain, a
-Cloudflare DNS-only CNAME, and an EdgeOne free certificate. Hosts under
-`bbbto.com` receive a Cloudflare DNS-only A record pointing to the server. The
-controller updates an existing A/AAAA/CNAME only when
+Cloudflare DNS-only CNAME, and an EdgeOne free certificate. The controller
+updates an existing A/AAAA/CNAME only when
 `platform.lazycampus.com/domain-adopt-existing: "true"` is present. It
 waits for a newly created EdgeOne domain to report `online` before switching
 Cloudflare to its CNAME. It
@@ -326,8 +326,8 @@ The following Kubernetes secrets are intentionally created out of band and are n
   number validation policy.
 - `domain-system/tencentcloud-credentials`: a dedicated CAM API key limited to
   the EdgeOne read-and-upsert actions used by domain automation.
-- `domain-system/cloudflare-credentials`: an API token with DNS Write access
-  limited to the `lazycampus.com` and `bbbto.com` zones.
+- `domain-system/cloudflare-credentials`: an API token used for DNS writes to
+  the managed `lazycampus.com` zone.
 - `domain-system/tcr-auth`: the registry pull credential for the controller.
 - `mysql-system/tcr-auth`: the registry pull credential for MySQL.
 - `mysql-system/mysql-credentials`: fixed root and backup-user passwords used
