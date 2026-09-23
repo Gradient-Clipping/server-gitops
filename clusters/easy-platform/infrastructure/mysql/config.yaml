@@ -14,8 +14,8 @@ data:
     max-connections=100
     innodb-buffer-pool-size=256M
     innodb-redo-log-capacity=256M
-    # Keep one day of binlogs alongside daily full dumps.
-    binlog-expire-logs-seconds=86400
+    # Keep seven days of binlogs alongside daily full dumps.
+    binlog-expire-logs-seconds=604800
     # Bound auxiliary memory within the shared instance's container limit.
     innodb-log-buffer-size=16M
     key-buffer-size=1M
