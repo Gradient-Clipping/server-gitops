@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-api:1.0.143 # {"$imagepolicy": "flux-system:easy-swu-api"}
+          image: ccr.ccs.tencentyun.com/lazycampus/easy-swu-api:1.0.144 # {"$imagepolicy": "flux-system:easy-swu-api"}
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:
