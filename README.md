@@ -291,6 +291,14 @@ while MinIO contains calendars and publication media. MinIO is mirrored daily
 to `/srv/k3s-backups/easy-swu-minio` with 14-day retention; the shared MySQL
 backup includes the `easy_swu` database.
 
+EdgeOne terminates public HTTPS for `easy-api` and `easy-admin` and applies the
+versioned origin-response budgets. `scripts/reconcile-easy-swu-edge.py` owns
+them: 40 seconds for the campus API, and 120 seconds for
+`/api/v1/admin/watermarks/decode`, which the general rule excludes because
+EdgeOne assigns rule priority itself and accepts only the prefixed
+`and not ${...} in [...]` negation. The origin-credential header rule stays
+manual: its value is a secret, as `docs/easy-swu-origin-ip.md` describes.
+
 Useful checks:
 
 ```sh
@@ -299,6 +307,8 @@ k3s kubectl -n easy-swu rollout status deployment/easy-swu-api --timeout=600s
 k3s kubectl -n easy-swu rollout status deployment/easy-swu-admin --timeout=300s
 curl -fsS https://easy-api.lazycampus.com/api/v1/system/ready
 curl -fsS https://easy-admin.lazycampus.com/healthz
+python3 scripts/reconcile-easy-swu-edge.py --check
+python3 -B -m unittest discover -s tests -v
 ```
 
 ## Bootstrap-only secrets
