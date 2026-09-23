@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: app
-          image: ccr.ccs.tencentyun.com/lazycampus/bbbto-mnp:1.0.4 # {"$imagepolicy": "flux-system:bbbto-mnp"}
+          image: ccr.ccs.tencentyun.com/lazycampus/bbbto-mnp:1.0.4
           imagePullPolicy: IfNotPresent
           env:
             - name: APP_BASE_DIR
