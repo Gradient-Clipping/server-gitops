@@ -34,6 +34,15 @@ UPSTREAM_CONDITION = (
 
 RULES = [
     {
+        "RuleName": "Easy SWU shuttle WebSocket",
+        "Status": "enable",
+        "Description": ["Managed by server-gitops/scripts/reconcile-easy-swu-edge.py"],
+        "Branches": [{
+            "Condition": "${http.request.host} in ['easy-api.lazycampus.com'] and ${http.request.uri.path} in ['/api/v1/utilities/shuttle-buses/stream']",
+            "Actions": [{"Name": "WebSocket", "WebSocketParameters": {"Switch": "on", "Timeout": 120}}],
+        }],
+    },
+    {
         "RuleName": "Easy SWU upstream timeout",
         "Status": "enable",
         "Description": ["Managed by server-gitops/scripts/reconcile-easy-swu-edge.py"],
@@ -138,9 +147,7 @@ def main() -> None:
             )
             sys.exit(1)
         print(
-            "Easy SWU EdgeOne origin timeouts verified: "
-            f"campus API {response_timeout(RULES[0])}s, "
-            f"watermark decode {response_timeout(RULES[1])}s."
+            "Easy SWU EdgeOne WebSocket and origin timeout rules verified."
         )
         return
 
@@ -151,7 +158,7 @@ def main() -> None:
                     {
                         "rule": desired["RuleName"],
                         "action": "update" if found else "create",
-                        "response_timeout": response_timeout(desired),
+                        "configuration": desired["Branches"][0]["Actions"],
                     }
                     for desired, found in plan
                 ],

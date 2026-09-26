@@ -23,6 +23,11 @@ map "$easy_swu_origin_authenticated:$easy_swu_origin_ip_valid" $easy_swu_client_
     "1:1" $easy_swu_origin_ip_candidate;
 }
 
+map $http_upgrade $easy_swu_connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
 server {
     listen 80;
     listen [::]:80;
@@ -34,6 +39,8 @@ server {
     location / {
         proxy_pass http://127.0.0.1:32080;
         proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $easy_swu_connection_upgrade;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $easy_swu_client_ip;
         proxy_set_header X-Forwarded-For $easy_swu_client_ip;

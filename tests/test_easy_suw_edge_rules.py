@@ -48,6 +48,11 @@ class EasySwuEdgeRulesTest(unittest.TestCase):
         for name, rule in self.rules().items():
             with self.subTest(rule=name):
                 self.assertEqual(len(rule["Branches"]), 1)
+                if name == "Easy SWU shuttle WebSocket":
+                    branch = rule["Branches"][0]
+                    self.assertEqual(branch["Condition"], "${http.request.host} in ['easy-api.lazycampus.com'] and ${http.request.uri.path} in ['/api/v1/utilities/shuttle-buses/stream']")
+                    self.assertEqual(branch["Actions"], [{"Name": "WebSocket", "WebSocketParameters": {"Switch": "on", "Timeout": 120}}])
+                    continue
                 self.assertEqual(
                     [action["Name"] for action in rule["Branches"][0]["Actions"]],
                     ["HTTPUpstreamTimeout"],

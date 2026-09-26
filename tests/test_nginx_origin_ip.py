@@ -22,6 +22,8 @@ class HeaderEcho(http.server.BaseHTTPRequestHandler):
             "ip": self.headers.get("X-Real-IP"),
             "chain": self.headers.get("X-Forwarded-For"),
             "key": self.headers.get("X-Easy-SWU-Origin-Key"),
+            "upgrade": self.headers.get("Upgrade"),
+            "connection": self.headers.get("Connection"),
         }).encode()
         self.send_response(200)
         self.send_header("Content-Length", str(len(data)))
@@ -103,7 +105,13 @@ class NginxOriginIpTest(unittest.TestCase):
         return json.loads(data)
 
     def assert_origin(self, result, expected):
-        self.assertEqual(result, {"ip": expected, "chain": expected, "key": None})
+        self.assertEqual({k: result[k] for k in ("ip", "chain", "key")}, {"ip": expected, "chain": expected, "key": None})
+
+    def test_websocket_upgrade_reaches_api(self):
+        result = self.request(extra=(("Upgrade", "websocket"), ("Connection", "Upgrade")))
+        self.assertEqual(result["upgrade"], "websocket")
+        self.assertEqual(result["connection"], "upgrade")
+        self.assertEqual(self.request()["connection"], "close")
 
     def test_authenticated_ipv4_and_ipv6_replace_forged_chains_for_both_hosts(self):
         for host in ("easy-api.lazycampus.com", "easy-admin.lazycampus.com"):
