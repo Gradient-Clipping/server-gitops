@@ -105,6 +105,13 @@ spec:
       ports:
         - port: 441
           protocol: TCP
+    # youche.jhcampus.net: the campus shuttle feed uses a dedicated TLS port.
+    - to:
+        - ipBlock:
+            cidr: 47.106.227.203/32
+      ports:
+        - port: 8914
+          protocol: TCP
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
